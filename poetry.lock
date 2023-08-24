@@ -1574,16 +1574,6 @@ files = [
 ]
 
 [[package]]
-name = "kenlm"
-version = "0.2.0"
-description = ""
-optional = false
-python-versions = "*"
-files = [
-    {file = "kenlm-0.2.0.tar.gz", hash = "sha256:c2dc1dc09d3c150e6a1777ef0fd5cac3688e1dc1cc13e41472d0284e5e88ac7f"},
-]
-
-[[package]]
 name = "kiwisolver"
 version = "1.4.5"
 description = "A fast implementation of the Cassowary constraint solver"
@@ -2592,10 +2582,7 @@ files = [
 ]
 
 [package.dependencies]
-numpy = [
-    {version = ">=1.21.0", markers = "python_version >= \"3.10\""},
-    {version = ">=1.23.2", markers = "python_version >= \"3.11\""},
-]
+numpy = {version = ">=1.21.0", markers = "python_version >= \"3.10\""}
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
 tzdata = ">=2022.1"
@@ -3102,6 +3089,20 @@ files = [
 
 [package.extras]
 diagrams = ["jinja2", "railroad-diagrams"]
+
+[[package]]
+name = "pypi-kenlm"
+version = "0.1.20220713"
+description = ""
+optional = false
+python-versions = "*"
+files = [
+    {file = "pypi-kenlm-0.1.20220713.tar.gz", hash = "sha256:6bd960b1e6bf85cc5469d469bde1955dad7dc79b4fe06ade9b5d0609b3507992"},
+]
+
+[package.source]
+type = "file"
+url = "input/python-packages/pypikenlm/pypi-kenlm-0.1.20220713.tar.gz"
 
 [[package]]
 name = "pyrsistent"
@@ -4117,7 +4118,7 @@ description = "Tensors and Dynamic neural networks in Python with strong GPU acc
 optional = false
 python-versions = ">=3.8.0"
 files = [
-    {file = "torch-2.0.0+cu118-cp311-cp311-linux_x86_64.whl", hash = "sha256:238573d362c564113451046f6708c3b8158fe6b1b7f6c03b7273327d955deb54"},
+    {file = "torch-2.0.0+cu118-cp310-cp310-linux_x86_64.whl", hash = "sha256:4b690e2b77f21073500c65d8bb9ea9656b8cb4e969f357370bbc992a3b074764"},
 ]
 
 [package.dependencies]
@@ -4133,7 +4134,7 @@ opt-einsum = ["opt-einsum (>=3.3)"]
 
 [package.source]
 type = "url"
-url = "https://download.pytorch.org/whl/cu118/torch-2.0.0%2Bcu118-cp311-cp311-linux_x86_64.whl"
+url = "https://download.pytorch.org/whl/cu118/torch-2.0.0%2Bcu118-cp310-cp310-linux_x86_64.whl"
 
 [[package]]
 name = "tornado"
@@ -4745,5 +4746,5 @@ unicode = ["tangled-up-in-unicode (==0.2.0)"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.10, <3.12"
-content-hash = "10a19f343f40cdeaa73b2ffdef1e2b4a375fafb50bbae1811ea470c04e694dc9"
+python-versions = "3.10.12"
+content-hash = "1d58545889c6c171593abace858d67ed03bbdfd4b64ddbf5ea8d4a9c6a91d42a"
