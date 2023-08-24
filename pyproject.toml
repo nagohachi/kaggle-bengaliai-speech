@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "kaggle_bengali"}]
 
 [tool.poetry.dependencies]
-python = ">=3.11, <3.12"
+python = ">=3.10, <3.12"
 # for notebook
 jupyter = "^1.0.0"
 ipykernel = "^6.24.0"
@@ -29,6 +29,20 @@ torch = {url = "https://download.pytorch.org/whl/cu118/torch-2.0.0%2Bcu118-cp311
 nltk = "^3.8.1"
 transformers = "^4.32.0"
 datasets = "^2.14.4"
+# for this repository
+jiwer = {path = "input/python-packages/jiwer/jiwer-2.3.0-py3-none-any.whl"}
+bnunicodenormalizer = {path = "input/python-packages/normalizer/bnunicodenormalizer-0.0.24.tar.gz"}
+attrs = {path = "input/python-packages/pyctcdecode/attrs-22.1.0-py2.py3-none-any.whl"}
+exceptiongroup = {path = "input/python-packages/pyctcdecode/exceptiongroup-1.0.0rc9-py3-none-any.whl"}
+hypothesis = {path = "input/python-packages/pyctcdecode/hypothesis-6.54.4-py3-none-any.whl"}
+pygtrie = {path = "input/python-packages/pyctcdecode/pygtrie-2.5.0.tar.gz"}
+sortedcontainers = {path = "input/python-packages/pyctcdecode/sortedcontainers-2.4.0-py2.py3-none-any.whl"}
+pyctcdecode = {path = "input/python-packages/pyctcdecode/pyctcdecode-0.4.0-py2.py3-none-any.whl"}
+kenlm = "^0.2.0"
+librosa = "^0.10.1"
+cloudpickle = "^2.2.1"
+
+
 
 [build-system]
 requires = ["poetry-core"]

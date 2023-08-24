@@ -160,5 +160,6 @@ cython_debug/
 #.idea/
 
 # specific to this repository
-input/python-packages2/
+input/python-packages/
 input/bengali-wav2vec2-finetuned/
+input/bengali-sr-download-public-trained-models/
