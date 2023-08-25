@@ -166,3 +166,5 @@ input/bengali-sr-download-public-trained-models/
 input/bengaliai-speech/
 
 .vscode/
+
+src/submission.csv
