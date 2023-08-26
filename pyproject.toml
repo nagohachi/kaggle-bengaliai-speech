@@ -41,6 +41,7 @@ pyctcdecode = {path = "input/python-packages/pyctcdecode/pyctcdecode-0.4.0-py2.p
 librosa = "^0.10.1"
 cloudpickle = "^2.2.1"
 pypi-kenlm = {path = "input/python-packages/pypikenlm/pypi-kenlm-0.1.20220713.tar.gz"}
+ipython = "^8.14.0"
 
 [build-system]
 requires = ["poetry-core"]
