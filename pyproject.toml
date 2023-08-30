@@ -42,6 +42,7 @@ librosa = "^0.10.1"
 cloudpickle = "^2.2.1"
 pypi-kenlm = {path = "input/python-packages/pypikenlm/pypi-kenlm-0.1.20220713.tar.gz"}
 ipython = "^8.14.0"
+noisereduce = "^2.0.1"
 
 [build-system]
 requires = ["poetry-core"]

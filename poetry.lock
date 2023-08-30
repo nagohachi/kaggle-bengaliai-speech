@@ -2401,6 +2401,27 @@ tgrep = ["pyparsing"]
 twitter = ["twython"]
 
 [[package]]
+name = "noisereduce"
+version = "2.0.1"
+description = "Noise reduction using Spectral Gating in python"
+optional = false
+python-versions = "*"
+files = [
+    {file = "noisereduce-2.0.1-py3-none-any.whl", hash = "sha256:a88c4eeb7777d1bd89d7fb939dfb8ed0d65bf4fbba22fc6f2807211487544a50"},
+    {file = "noisereduce-2.0.1.tar.gz", hash = "sha256:86faac20b0bddf61722e25704b42a27e67fa6fb011d8edcdee28ea2478da8b87"},
+]
+
+[package.dependencies]
+librosa = "*"
+matplotlib = "*"
+numpy = "*"
+scipy = "*"
+tqdm = "*"
+
+[package.extras]
+tensorflow = ["tensorflow (>=2.0)"]
+
+[[package]]
 name = "notebook"
 version = "6.5.5"
 description = "A web-based notebook environment for interactive computing"
@@ -4747,4 +4768,4 @@ unicode = ["tangled-up-in-unicode (==0.2.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "3.10.12"
-content-hash = "54d84a626f3cc66bd87e4eadee9284bf53c7f297ca045162f52c63e33532027d"
+content-hash = "76caa37dc69b786d7a641b8e6591707330abdddd335f0296488b8d2df658d9a4"
