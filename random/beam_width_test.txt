@@ -1,0 +1,11 @@
+beam_width: 2, mean_wer:0.547015, time per case: 0.041506523139893066
+beam_width: 4, mean_wer:0.491195, time per case: 0.04241767913576156
+beam_width: 8, mean_wer:0.464131, time per case: 0.04513930070967901
+beam_width: 16, mean_wer:0.454452, time per case: 0.049474724171653627
+beam_width: 32, mean_wer:0.447946, time per case: 0.05779415357680548
+beam_width: 64, mean_wer:0.445766, time per case: 0.07297071793722729
+beam_width: 128, mean_wer:0.443728, time per case: 0.10283311079418848
+beam_width: 256, mean_wer:0.442374, time per case: 0.16844410892516848
+beam_width: 512, mean_wer:0.442058, time per case: 0.32321327466813343
+beam_width: 768, mean_wer:0.441900, time per case: 0.4871887195677984
+beam_width: 1024, mean_wer:0.441657, time per case: 0.6496470738971044

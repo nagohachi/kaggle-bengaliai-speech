@@ -134,7 +134,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 model.eval()
 
-def inference(sampling_size, random_seed):
+def inference(sampling_size, random_seed, beam_width) -> float:
     train_random, train_loader = create_train_loader(sampling_size, random_seed)
     pred_sentence_list = []
     with torch.no_grad():
@@ -146,7 +146,7 @@ def inference(sampling_size, random_seed):
             y = y.detach().cpu().numpy()
 
             for l in y:
-                sentence = processor_with_lm.decode(l, beam_width=10).text
+                sentence = processor_with_lm.decode(l, beam_width=beam_width, alpha=0.3802723523729998, beta=0.053996879617918436).text
                 pred_sentence_list.append(sentence)
 
             del x, y
@@ -159,12 +159,22 @@ def inference(sampling_size, random_seed):
 
 # run
 if __name__ == "__main__":
+    import time
+
     sampling_size = 300
-    beam_widths = [256, 512, 1024, 2048]
+    beam_widths = [2, 4, 8, 16, 32, 64, 128, 256, 512, 768, 1024, 2048]
     for beam_width in beam_widths:
+        # 時間計測
+        start = time.time()
         wers = []
+        measured_cases = 0
         for random_seed in range(1, 43, 2):
-            wer = inference(sampling_size, random_seed)
+            wer = inference(sampling_size, random_seed, beam_width)
+            measured_cases += sampling_size
             wers.append(wer)
 
+        end = time.time()
+        with open("beam_width_test.txt", "a") as f:
+            # かかった時間
+            f.write(f"beam_width: {beam_width}, mean_wer:{sum(wers)/len(wers):6f}, time per case: {(end - start) / measured_cases}\n") 
         print(f"beam_width: {beam_width}, mean_wer:{sum(wers)/len(wers)}")
