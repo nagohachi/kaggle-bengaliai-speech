@@ -1,0 +1,1 @@
+beam_width: 512, mean_wer:0.485662, time per case: 0.17269357026569426

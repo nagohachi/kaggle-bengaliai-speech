@@ -44,6 +44,7 @@ pypi-kenlm = {path = "input/python-packages/pypikenlm/pypi-kenlm-0.1.20220713.ta
 ipython = "^8.14.0"
 noisereduce = "^2.0.1"
 torchaudio = {url = "https://download.pytorch.org/whl/cu118/torchaudio-2.0.1%2Bcu118-cp310-cp310-linux_x86_64.whl"}
+accelerate = "^0.23.0"
 
 [build-system]
 requires = ["poetry-core"]
