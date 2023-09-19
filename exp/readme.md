@@ -1,0 +1,4 @@
+- finetune.ipynb
+  - copied from [https://www.kaggle.com/competitions/bengaliai-speech/discussion/438484](https://www.kaggle.com/competitions/bengaliai-speech/discussion/438484)
+- infer.ipynb
+  - copied from [https://www.kaggle.com/competitions/bengaliai-speech/discussion/438484](https://www.kaggle.com/competitions/bengaliai-speech/discussion/438484)
