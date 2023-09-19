@@ -39,7 +39,9 @@ processor = Wav2Vec2Processor.from_pretrained(MODEL_PATH)
 # constants
 SAMPLING_RATE = 16000
 
+# split = train のもののみを使う
 train = pd.read_csv(DATA / "train.csv", dtype={"id": str})
+train = train[train["split"] == "train"]
 
 vocab_dict = processor.tokenizer.get_vocab()
 sorted_vocab_dict = {
@@ -178,26 +180,28 @@ def inference(sampling_size, random_seed, beam_width) -> float:
     return wer
 
 
+import datetime
+
 # run
 if __name__ == "__main__":
     import time
 
-    sampling_size = 300
+    sampling_size = 3000
     beam_widths = [512, 768, 1024]
+    current_time_str = datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")
     for beam_width in beam_widths:
         # 時間計測
         start = time.time()
         wers = []
         measured_cases = 0
-        for random_seed in range(1, 43, 2):
-            wer = inference(sampling_size, random_seed, beam_width)
-            measured_cases += sampling_size
-            wers.append(wer)
+        wer = inference(sampling_size, 42, beam_width)
+        measured_cases += sampling_size
+        wers.append(wer)
 
         end = time.time()
         with open("measure_saved_model_wer.txt", "a") as f:
             # かかった時間
             f.write(
-                f"beam_width: {beam_width}, mean_wer:{sum(wers)/len(wers):6f}, time per case: {(end - start) / measured_cases}\n"
+                f"beam_width: {beam_width}, mean_wer:{sum(wers)/len(wers):6f}, time per case: {(end - start) / measured_cases} at {current_time_str}\n"
             )
         print(f"beam_width: {beam_width}, mean_wer:{sum(wers)/len(wers)}")

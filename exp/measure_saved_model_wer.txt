@@ -1,1 +1,2 @@
-beam_width: 512, mean_wer:0.485662, time per case: 0.17269357026569426
+beam_width: 512, mean_wer:0.477843, time per case: 0.5528257799148559 at 2023/09/19 20:56:46
+
