@@ -111,8 +111,7 @@ print(len(sentences))
 
 
 # * sample 10% data from "valid" part into validation set, 90% into training set.
-# * sample 5% data from "train" part, and additionally sample 8% from it into validation set, 92% into training set.
-# * There will be **57776** train data, **5667** valid data.
+# * sample 15% data from "train" part, and additionally sample 8% from it into validation set, 92% into training set.
 
 
 data_0 = sentences.loc[sentences["split"] == "valid"].reset_index(drop=True)
@@ -122,7 +121,7 @@ train_0 = data_0[~data_0.index.isin(valid_0.index)]
 data_1 = (
     sentences.loc[sentences["split"] == "train"]
     .reset_index(drop=True)
-    .sample(frac=0.05, random_state=42)
+    .sample(frac=0.15, random_state=42)
 )
 valid_1 = data_1.sample(frac=0.08, random_state=42)
 train_1 = data_1[~data_1.index.isin(valid_1.index)]
@@ -147,8 +146,8 @@ valid_ids = valid["id"].to_list()
 valid = valid.sample(n=2000, random_state=42)
 
 print(len(all_ids))
-print(len(train_ids))
-print(len(valid_ids))
+print("train_ids", len(train_ids))
+print("valid_ids", len(valid_ids))
 
 
 class W2v2Dataset(torch.utils.data.Dataset):
@@ -307,10 +306,10 @@ training_args = TrainingArguments(
     evaluation_strategy="steps",
     save_strategy="steps",
     # max_steps=1000,  # you can change to "num_train_epochs"
-    num_train_epochs=7,
+    num_train_epochs=3,
     fp16=True,
     save_steps=2000,
-    eval_steps=500,
+    eval_steps=1000,
     logging_steps=500,
     learning_rate=2e-5,
     warmup_steps=600,
@@ -332,7 +331,7 @@ trainer = Trainer(
     train_dataset=train_dataset,
     eval_dataset=valid_dataset,
     tokenizer=processor.feature_extractor,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=7)],
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
 )
 
 
