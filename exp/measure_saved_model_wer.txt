@@ -1,5 +1,7 @@
 beam_width: 512, mean_wer:0.477843, time per case: 0.5528257799148559 at 2023/09/19 20:56:46 : 1000データくらい回したやつ
 beam_width: 512, mean_wer:0.461927, time per case: 0.27904653366406756 at 2023/09/19 23:58:12 : 0.8 エポックくらい (10,000 データくらい？) 回したやつ
+
 beam_width: 512, mean_wer:0.455769, time per case: 0.30155509972572325 at 2023/09/20 14:07:42
 beam_width: 768, mean_wer:0.455789, time per case: 0.479832403421402 at 2023/09/20 14:07:42
 beam_width: 1024, mean_wer:0.455686, time per case: 0.6335456336339315 at 2023/09/20 14:07:42
+beam_width: 512, mean_wer:0.492345, time per case: 0.3102907157739003 at 2023/09/20 17:11:20

@@ -1,3 +1,5 @@
+import datetime
+import jiwer
 import typing as tp
 from pathlib import Path
 from functools import partial
@@ -44,19 +46,23 @@ train = pd.read_csv(DATA / "train.csv", dtype={"id": str})
 train = train[train["split"] == "train"]
 
 vocab_dict = processor.tokenizer.get_vocab()
-sorted_vocab_dict = {
-    k: v for k, v in sorted(vocab_dict.items(), key=lambda item: item[1])
-}
+vocab_dict = vocab_dict["ben"]
+vocab_dict["<s>"] = 64
+vocab_dict["</s>"] = 65
+sorted_vocab_dict = {k: v for k, v in sorted(
+    vocab_dict.items(), key=lambda item: item[1])}
+
 decoder = pyctcdecode.build_ctcdecoder(
     list(sorted_vocab_dict.keys()),
+    # list(vocab_dict['ben'].keys()),
     str(LM_PATH / "5gram.bin"),
 )
 
-processor_with_lm = Wav2Vec2ProcessorWithLM(
-    feature_extractor=processor.feature_extractor,
-    tokenizer=processor.tokenizer,
-    decoder=decoder,
-)
+# processor_with_lm = Wav2Vec2ProcessorWithLM(
+#     feature_extractor=processor.feature_extractor,
+#     tokenizer=processor.tokenizer,
+#     decoder=decoder,
+# )
 
 
 # prepare dataloader
@@ -79,7 +85,8 @@ class BengaliSRTestDataset(torch.utils.data.Dataset):
 
 
 collate_func = partial(
-    processor_with_lm.feature_extractor,
+    processor.feature_extractor,
+    # processor_with_lm.feature_extractor,
     return_tensors="pt",
     sampling_rate=SAMPLING_RATE,
     padding=True,
@@ -104,7 +111,8 @@ def create_test_loader():
 
 def create_train_loader(sampling_size, random_seed):
     train_random = train.sample(sampling_size, random_state=random_seed)
-    train_audio_paths = [str(TRAIN / f"{aid}.mp3") for aid in train_random["id"].values]
+    train_audio_paths = [str(TRAIN / f"{aid}.mp3")
+                         for aid in train_random["id"].values]
     train_dataset = BengaliSRTestDataset(train_audio_paths, SAMPLING_RATE)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -136,7 +144,6 @@ def postprocess(sentence):
 
 
 # calculate wer
-import jiwer
 
 
 def mean_wer(solution, submission):
@@ -153,7 +160,8 @@ model.eval()
 
 
 def inference(sampling_size, random_seed, beam_width) -> float:
-    train_random, train_loader = create_train_loader(sampling_size, random_seed)
+    train_random, train_loader = create_train_loader(
+        sampling_size, random_seed)
     pred_sentence_list = []
     with torch.no_grad():
         for i, batch in enumerate(tqdm(train_loader)):
@@ -163,24 +171,27 @@ def inference(sampling_size, random_seed, beam_width) -> float:
                 y = model(x).logits
             y = y.detach().cpu().numpy()
 
+            # for l in y:
+            #     sentence = processor_with_lm.decode(
+            #         l,
+            #         beam_width=beam_width,
+            #         alpha=0.3802723523729998,
+            #         beta=0.053996879617918436,
+            #     ).text
+            #     pred_sentence_list.append(sentence)
             for l in y:
-                sentence = processor_with_lm.decode(
-                    l,
-                    beam_width=beam_width,
-                    alpha=0.3802723523729998,
-                    beta=0.053996879617918436,
-                ).text
-                pred_sentence_list.append(sentence)
+                beam = decoder.decode_beams(l, beam_width=beam_width)
+                s = beam[0][0]
+                pred_sentence_list.append(s)
 
             del x, y
     del train_loader
 
-    pp_pred_sentence_list = [postprocess(sentence) for sentence in pred_sentence_list]
+    pp_pred_sentence_list = [postprocess(sentence)
+                             for sentence in pred_sentence_list]
     wer = mean_wer(train_random["sentence"], pp_pred_sentence_list)
     return wer
 
-
-import datetime
 
 # run
 if __name__ == "__main__":
