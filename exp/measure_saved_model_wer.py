@@ -27,7 +27,7 @@ TRAIN_WAV = DATA / "train_wavs"
 TRAIN_WAV_NOISE_REDUCED = DATA / "train_wavs_noise_reduced"
 TEST = DATA / "test_mp3s"
 
-MODEL_PATH = INPUT / "wav2vec2-large-mms-1b-bengali/"
+MODEL_PATH = INPUT / "saved_model/"
 LM_PATH = (
     INPUT
     / "bengali-sr-download-public-trained-models/wav2vec2-xls-r-300m-bengali/language_model/"

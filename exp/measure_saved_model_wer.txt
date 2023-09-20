@@ -4,4 +4,7 @@ beam_width: 512, mean_wer:0.461927, time per case: 0.27904653366406756 at 2023/0
 beam_width: 512, mean_wer:0.455769, time per case: 0.30155509972572325 at 2023/09/20 14:07:42
 beam_width: 768, mean_wer:0.455789, time per case: 0.479832403421402 at 2023/09/20 14:07:42
 beam_width: 1024, mean_wer:0.455686, time per case: 0.6335456336339315 at 2023/09/20 14:07:42
-beam_width: 512, mean_wer:0.492345, time per case: 0.3102907157739003 at 2023/09/20 17:11:20
+
+beam_width: 512, mean_wer:0.493391, time per case: 0.15569983021418254 at 2023/09/20 17:34:35
+beam_width: 512, mean_wer:0.775572, time per case: 0.4250378397305806 at 2023/09/20 17:47:31
+beam_width: 512, mean_wer:0.492345, time per case: 0.30929334648450213 at 2023/09/20 18:11:44

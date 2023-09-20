@@ -54,7 +54,6 @@ sorted_vocab_dict = {k: v for k, v in sorted(
 
 decoder = pyctcdecode.build_ctcdecoder(
     list(sorted_vocab_dict.keys()),
-    # list(vocab_dict['ben'].keys()),
     str(LM_PATH / "5gram.bin"),
 )
 
