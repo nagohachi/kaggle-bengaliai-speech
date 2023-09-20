@@ -307,11 +307,11 @@ training_args = TrainingArguments(
     evaluation_strategy="steps",
     save_strategy="steps",
     # max_steps=1000,  # you can change to "num_train_epochs"
-    num_train_epochs=1,
+    num_train_epochs=7,
     fp16=True,
     save_steps=2000,
-    eval_steps=200,
-    logging_steps=20,
+    eval_steps=500,
+    logging_steps=500,
     learning_rate=2e-5,
     warmup_steps=600,
     save_total_limit=1,
@@ -332,7 +332,7 @@ trainer = Trainer(
     train_dataset=train_dataset,
     eval_dataset=valid_dataset,
     tokenizer=processor.feature_extractor,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=1)],
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=7)],
 )
 
 
