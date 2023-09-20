@@ -88,7 +88,7 @@ sorted_vocab_dict = {
 decoder = pyctcdecode.build_ctcdecoder(
     list(sorted_vocab_dict.keys()),
     str(LM_PATH) + "/5gram.bin",
-    str(LM_PATH) + "/unigrams.txt",
+    # str(LM_PATH) + "/unigrams.txt",
 )
 processor_with_lm = Wav2Vec2ProcessorWithLM(
     feature_extractor=processor.feature_extractor,

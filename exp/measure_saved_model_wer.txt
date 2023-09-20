@@ -8,3 +8,5 @@ beam_width: 1024, mean_wer:0.455686, time per case: 0.6335456336339315 at 2023/0
 beam_width: 512, mean_wer:0.493391, time per case: 0.15569983021418254 at 2023/09/20 17:34:35
 beam_width: 512, mean_wer:0.775572, time per case: 0.4250378397305806 at 2023/09/20 17:47:31
 beam_width: 512, mean_wer:0.492345, time per case: 0.30929334648450213 at 2023/09/20 18:11:44
+
+# 小さい方のモデル、unigram.txt なし
