@@ -5,56 +5,30 @@
 # - The inference part is here: [Bengali SR wav2vec_v1_bengali [Inference]](https://www.kaggle.com/takanashihumbert/bengali-sr-wav2vec-v1-bengali-inference), it scores **0.445** on the leaderboard.
 # - Feel free to upvote, thanks!
 
-
-# this part is not needed because the packages are already described in pyproject.toml
-
-# !cp -r ../input/python-packages2 ./
-
-# !tar xvfz ./python-packages2/jiwer.tgz
-# !pip install ./jiwer/jiwer-2.3.0-py3-none-any.whl -f ./ --no-index
-# !tar xvfz ./python-packages2/normalizer.tgz
-# !pip install ./normalizer/bnunicodenormalizer-0.0.24.tar.gz -f ./ --no-index
-# !tar xvfz ./python-packages2/pyctcdecode.tgz
-# !pip install ./pyctcdecode/attrs-22.1.0-py2.py3-none-any.whl -f ./ --no-index --no-deps
-# !pip install ./pyctcdecode/exceptiongroup-1.0.0rc9-py3-none-any.whl -f ./ --no-index --no-deps
-# !pip install ./pyctcdecode/hypothesis-6.54.4-py3-none-any.whl -f ./ --no-index --no-deps
-# !pip install ./pyctcdecode/numpy-1.21.6-cp37-cp37m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl -f ./ --no-index --no-deps
-# !pip install ./pyctcdecode/pygtrie-2.5.0.tar.gz -f ./ --no-index --no-deps
-# !pip install ./pyctcdecode/sortedcontainers-2.4.0-py2.py3-none-any.whl -f ./ --no-index --no-deps
-# !pip install ./pyctcdecode/pyctcdecode-0.4.0-py2.py3-none-any.whl -f ./ --no-index --no-deps
-
-# !tar xvfz ./python-packages2/pypikenlm.tgz
-# !pip install ./pypikenlm/pypi-kenlm-0.1.20220713.tar.gz -f ./ --no-index --no-deps
-
-
-import torch
-import torch.nn as nn
-import torchaudio
-import torchaudio.transforms as tat
-from datasets import load_dataset, load_metric, Audio
 import os
-
-import typing as tp
-from pathlib import Path
-from functools import partial
+import warnings
 from dataclasses import dataclass, field
+from functools import partial
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+import numpy as np
 import pandas as pd
 import pyctcdecode
-import numpy as np
-from tqdm import tqdm
-
-import librosa
-import gc
-import jiwer
-import pyctcdecode
-import kenlm
 import torch
-from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM, Wav2Vec2ForCTC
-from transformers import TrainingArguments, Trainer, EarlyStoppingCallback
+import torchaudio
+import torchaudio.transforms as tat
 from bnunicodenormalizer import Normalizer
-import warnings
+from datasets import Audio, load_dataset, load_metric
+from tqdm import tqdm
+from transformers import (
+    EarlyStoppingCallback,
+    Trainer,
+    TrainingArguments,
+    Wav2Vec2ForCTC,
+    Wav2Vec2Processor,
+    Wav2Vec2ProcessorWithLM,
+)
 
 warnings.filterwarnings("ignore")
 torchaudio.set_audio_backend("soundfile")
@@ -111,7 +85,7 @@ print(len(sentences))
 
 
 # * sample 10% data from "valid" part into validation set, 90% into training set.
-# * sample 15% data from "train" part, and additionally sample 8% from it into validation set, 92% into training set.
+# * sample 20% data from "train" part, and additionally sample 8% from it into validation set, 92% into training set.
 
 
 data_0 = sentences.loc[sentences["split"] == "valid"].reset_index(drop=True)
@@ -121,7 +95,7 @@ train_0 = data_0[~data_0.index.isin(valid_0.index)]
 data_1 = (
     sentences.loc[sentences["split"] == "train"]
     .reset_index(drop=True)
-    .sample(frac=0.15, random_state=42)
+    .sample(frac=0.20, random_state=42)
 )
 valid_1 = data_1.sample(frac=0.08, random_state=42)
 train_1 = data_1[~data_1.index.isin(valid_1.index)]
@@ -143,11 +117,87 @@ train_ids = train["id"].to_list()
 valid_ids = valid["id"].to_list()
 
 # in kaggle notebook, validating is very time-consuming, so here I use a small validation set, rather than 5667.
-valid = valid.sample(n=2000, random_state=42)
+valid = valid.sample(n=3000, random_state=42)
 
 print(len(all_ids))
 print("train_ids", len(train_ids))
 print("valid_ids", len(valid_ids))
+
+thresh_size = 40000
+
+train_ids = [
+    train_id
+    for train_id in train_ids
+    if os.path.getsize(str(TRAIN / train_id) + ".mp3") < thresh_size
+]
+valid_ids = [
+    valid_id
+    for valid_id in valid_ids
+    if os.path.getsize(str(TRAIN / valid_id) + ".mp3") < thresh_size
+]
+
+print("train_ids", len(train_ids))
+print("valid_ids", len(valid_ids))
+
+train_ids = sorted(
+    train_ids, key=lambda train_id: os.path.getsize(str(TRAIN / train_id) + ".mp3")
+)
+
+# train_ids[0], train_ids[n], train_ids[1], train_ids[n-1], train_ids[2], train_ids[n-2], ... となるようにする
+train_ids_aligned = []
+for i in range(len(train_ids) // 2):
+    train_ids_aligned.append(train_ids[i])
+    train_ids_aligned.append(train_ids[len(train_ids) - 1 - i])
+
+train_ids = train_ids_aligned
+
+# valid_ids についても同様に
+valid_ids = sorted(
+    valid_ids, key=lambda valid_id: os.path.getsize(str(TRAIN / valid_id) + ".mp3")
+)
+
+valid_ids_aligned = []
+for i in range(len(valid_ids) // 2):
+    valid_ids_aligned.append(valid_ids[i])
+    valid_ids_aligned.append(valid_ids[len(valid_ids) - 1 - i])
+
+valid_ids = valid_ids_aligned
+
+
+# train_ids の中にある隣接する 2 つのファイルの容量の和の最小値・最大値を計算
+train_sizes = [
+    os.path.getsize(str(TRAIN / train_id) + ".mp3") for train_id in train_ids
+]
+min_train_adjacent_size = np.min(
+    [train_sizes[i] + train_sizes[i + 1] for i in range(len(train_sizes) - 1)]
+)
+max_train_adjacent_size = np.max(
+    [train_sizes[i] + train_sizes[i + 1] for i in range(len(train_sizes) - 1)]
+)
+
+# valid についても同様に
+valid_sizes = [
+    os.path.getsize(str(TRAIN / valid_id) + ".mp3") for valid_id in valid_ids
+]
+min_valid_adjacent_size = np.min(
+    [valid_sizes[i] + valid_sizes[i + 1] for i in range(len(valid_sizes) - 1)]
+)
+max_valid_adjacent_size = np.max(
+    [valid_sizes[i] + valid_sizes[i + 1] for i in range(len(valid_sizes) - 1)]
+)
+
+print(
+    "min_train_adjacent_size",
+    min_train_adjacent_size,
+    "max_train_adjacent_size",
+    max_train_adjacent_size,
+)
+print(
+    "min_valid_adjacent_size",
+    min_valid_adjacent_size,
+    "max_valid_adjacent_size",
+    max_valid_adjacent_size,
+)
 
 
 class W2v2Dataset(torch.utils.data.Dataset):
@@ -285,6 +335,8 @@ model = Wav2Vec2ForCTC.from_pretrained(
     diversity_loss_weight=100,
 )
 
+# _ = model.half()
+# _ = model.to("cuda")
 
 # you can freeze some params
 model.freeze_feature_extractor()
@@ -300,9 +352,9 @@ training_args = TrainingArguments(
     group_by_length=False,
     lr_scheduler_type="cosine",
     weight_decay=0.01,
-    per_device_train_batch_size=4,
-    per_device_eval_batch_size=16,
-    gradient_accumulation_steps=1,
+    per_device_train_batch_size=2,
+    per_device_eval_batch_size=8,
+    gradient_accumulation_steps=2,
     evaluation_strategy="steps",
     save_strategy="steps",
     # max_steps=1000,  # you can change to "num_train_epochs"
@@ -320,6 +372,7 @@ training_args = TrainingArguments(
     prediction_loss_only=False,
     auto_find_batch_size=True,
     report_to="none",
+    remove_unused_columns=True,
 )
 
 
@@ -331,7 +384,7 @@ trainer = Trainer(
     train_dataset=train_dataset,
     eval_dataset=valid_dataset,
     tokenizer=processor.feature_extractor,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+    # callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
 )
 
 
