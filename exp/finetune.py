@@ -7,10 +7,9 @@
 
 import os
 import warnings
-from dataclasses import dataclass, field
-from functools import partial
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -18,9 +17,7 @@ import pyctcdecode
 import torch
 import torchaudio
 import torchaudio.transforms as tat
-from bnunicodenormalizer import Normalizer
-from datasets import Audio, load_dataset, load_metric
-from tqdm import tqdm
+from datasets import load_metric
 from transformers import (
     EarlyStoppingCallback,
     Trainer,
@@ -75,13 +72,35 @@ processor_with_lm = Wav2Vec2ProcessorWithLM(
 # - Also, I use @UmongSain's normalized data [here](https://www.kaggle.com/code/umongsain/macro-normalization/notebook). Thanks to him!
 
 
-sentences = pd.read_csv(SENTENCES_PATH)
+# sentences = pd.read_csv(SENTENCES_PATH)
 indexes = set(pd.read_csv(INDEXES_PATH)["id"])
-print(len(sentences))
+sentences = pd.read_csv(
+    DATA / "train_normalized_with_noise_info.csv",
+    dtype={
+        "id": str,
+        "mos_pred": float,
+        "noi_pred": float,
+        "dis_pred": float,
+        "col_pred": float,
+        "loud_pred": float,
+        "model": str,
+    },
+)
+
+print("sentence length", len(sentences))
+
+# sentence の中で、mos_pred が NaN または mos_pred が 1.5 以下のものを除外
+sentences = sentences[
+    ~((sentences["mos_pred"].isnull()) | (sentences["mos_pred"] <= 1.5))
+]
+
+print("sentence length", len(sentences))
 sentences = sentences[
     ~((sentences.index.isin(indexes)) & (sentences["split"] == "train"))
 ].reset_index(drop=True)
-print(len(sentences))
+
+
+print("sentence length", len(sentences))
 
 
 # * sample 10% data from "valid" part into validation set, 90% into training set.
@@ -112,6 +131,7 @@ valid = (
 )
 
 del data_0, data_1, valid_0, valid_1, train_0, train_1
+
 all_ids = sentences["id"].to_list()
 train_ids = train["id"].to_list()
 valid_ids = valid["id"].to_list()
@@ -204,7 +224,7 @@ class W2v2Dataset(torch.utils.data.Dataset):
     def __init__(self, df):
         self.df = df
         self.pathes = df["id"].values
-        self.sentences = df["normalized"].values
+        self.sentences = df["sentence_normalized"].values
         self.resampler = tat.Resample(32000, SR)
 
     def __getitem__(self, idx):
@@ -360,8 +380,8 @@ training_args = TrainingArguments(
     # max_steps=1000,  # you can change to "num_train_epochs"
     num_train_epochs=3,
     fp16=True,
-    save_steps=2000,
-    eval_steps=1000,
+    save_steps=4000,
+    eval_steps=2000,
     logging_steps=500,
     learning_rate=2e-5,
     warmup_steps=600,
@@ -384,7 +404,7 @@ trainer = Trainer(
     train_dataset=train_dataset,
     eval_dataset=valid_dataset,
     tokenizer=processor.feature_extractor,
-    # callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
 )
 
 

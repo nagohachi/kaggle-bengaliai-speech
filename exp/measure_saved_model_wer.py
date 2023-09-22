@@ -22,12 +22,13 @@ import cloudpickle as cpkl
 ROOT = Path.cwd().parent
 INPUT = ROOT / "input"
 DATA = INPUT / "bengaliai-speech"
+INSPECT = INPUT / "inspect"
 TRAIN = DATA / "train_mp3s"
 TRAIN_WAV = DATA / "train_wavs"
 TRAIN_WAV_NOISE_REDUCED = DATA / "train_wavs_noise_reduced"
 TEST = DATA / "test_mp3s"
 
-MODEL_PATH = INPUT / "saved_model/"
+MODEL_PATH = INPUT / "saved_model_small_valid_3epoch/"
 LM_PATH = (
     INPUT
     / "bengali-sr-download-public-trained-models/wav2vec2-xls-r-300m-bengali/language_model/"
@@ -40,8 +41,13 @@ processor = Wav2Vec2Processor.from_pretrained(MODEL_PATH)
 SAMPLING_RATE = 16000
 
 # split = train のもののみを使う
-train = pd.read_csv(DATA / "train.csv", dtype={"id": str})
-train = train[train["split"] == "train"]
+train = pd.read_csv(DATA / "train_normalized_with_noise.csv", dtype={"id": str})
+exclusive_ids = pd.read_csv(INSPECT / "exclusive_ids.csv", dtype={"id": str})
+explusive_ids_set = set(exclusive_ids["id"].values)
+
+# exclusive_ids_set の中に入っているもののみを使う
+train = train[train["id"].isin(explusive_ids_set)]
+print(len(train))
 
 vocab_dict = processor.tokenizer.get_vocab()
 sorted_vocab_dict = {
@@ -176,7 +182,7 @@ def inference(sampling_size, random_seed, beam_width) -> float:
     del train_loader
 
     pp_pred_sentence_list = [postprocess(sentence) for sentence in pred_sentence_list]
-    wer = mean_wer(train_random["sentence"], pp_pred_sentence_list)
+    wer = mean_wer(train_random["sentence_normalized"], pp_pred_sentence_list)
     return wer
 
 
