@@ -43,7 +43,7 @@ TRAIN = DATA / "train_mp3s"
 TEST = DATA / "test_mp3s"
 
 output_dir = INPUT / "saved_model"
-MODEL_PATH = INPUT / "ai4bharat-indicwav2vec-v1-bengali/indicwav2vec_v1_bengali"
+MODEL_PATH = INPUT / "bengali-wav2vec2-finetuned"
 LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model"
 
 SENTENCES_PATH = INPUT / "macro-normalization/normalized.csv"
@@ -219,6 +219,20 @@ print(
     max_valid_adjacent_size,
 )
 
+# all_ids から train_ids と valid_ids を除外したものを exclusive_ids とする
+# train_ids_set = set(train_ids)
+# valid_ids_set = set(valid_ids)
+
+# exclusive_ids = [
+#     all_id
+#     for all_id in all_ids
+#     if (all_id not in train_ids_set) and (all_id not in valid_ids_set)
+# ]
+
+# # INPUT / exclusive_ids.csv に保存
+# pd.DataFrame({"id": exclusive_ids}).to_csv(INPUT / "exclusive_ids.csv", index=False)
+# exit(0)
+
 
 class W2v2Dataset(torch.utils.data.Dataset):
     def __init__(self, df):
@@ -377,10 +391,10 @@ training_args = TrainingArguments(
     gradient_accumulation_steps=2,
     evaluation_strategy="steps",
     save_strategy="steps",
-    # max_steps=1000,  # you can change to "num_train_epochs"
-    num_train_epochs=3,
+    max_steps=6000,  # you can change to "num_train_epochs"
+    # num_train_epochs=3,
     fp16=True,
-    save_steps=4000,
+    save_steps=2000,
     eval_steps=2000,
     logging_steps=500,
     learning_rate=2e-5,
@@ -404,7 +418,7 @@ trainer = Trainer(
     train_dataset=train_dataset,
     eval_dataset=valid_dataset,
     tokenizer=processor.feature_extractor,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
 )
 
 
