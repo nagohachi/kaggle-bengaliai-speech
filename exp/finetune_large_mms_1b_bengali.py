@@ -78,8 +78,9 @@ vocab_dict = processor.tokenizer.get_vocab()
 vocab_dict = vocab_dict["ben"]
 vocab_dict["<s>"] = 64
 vocab_dict["</s>"] = 65
-sorted_vocab_dict = {k: v for k, v in sorted(
-    vocab_dict.items(), key=lambda item: item[1])}
+sorted_vocab_dict = {
+    k: v for k, v in sorted(vocab_dict.items(), key=lambda item: item[1])
+}
 
 decoder = pyctcdecode.build_ctcdecoder(
     list(sorted_vocab_dict.keys()),
@@ -90,18 +91,38 @@ decoder = pyctcdecode.build_ctcdecoder(
 # - Also, I use @UmongSain's normalized data [here](https://www.kaggle.com/code/umongsain/macro-normalization/notebook). Thanks to him!
 
 
-sentences = pd.read_csv(SENTENCES_PATH)
 indexes = set(pd.read_csv(INDEXES_PATH)["id"])
-print(len(sentences))
+sentences = pd.read_csv(
+    DATA / "train_normalized_with_noise_info.csv",
+    dtype={
+        "id": str,
+        "mos_pred": float,
+        "noi_pred": float,
+        "dis_pred": float,
+        "col_pred": float,
+        "loud_pred": float,
+        "model": str,
+    },
+)
+
+print("sentence length", len(sentences))
+
+# sentence の中で、mos_pred が NaN または mos_pred が 1.5 以下のものを除外
+sentences = sentences[
+    ~((sentences["mos_pred"].isnull()) | (sentences["mos_pred"] <= 1.5))
+]
+
+print("sentence length", len(sentences))
 sentences = sentences[
     ~((sentences.index.isin(indexes)) & (sentences["split"] == "train"))
 ].reset_index(drop=True)
-print(len(sentences))
+
+
+print("sentence length", len(sentences))
 
 
 # * sample 10% data from "valid" part into validation set, 90% into training set.
-# * sample 5% data from "train" part, and additionally sample 8% from it into validation set, 92% into training set.
-# * There will be **57776** train data, **5667** valid data.
+# * sample 20% data from "train" part, and additionally sample 8% from it into validation set, 92% into training set.
 
 
 data_0 = sentences.loc[sentences["split"] == "valid"].reset_index(drop=True)
@@ -111,7 +132,7 @@ train_0 = data_0[~data_0.index.isin(valid_0.index)]
 data_1 = (
     sentences.loc[sentences["split"] == "train"]
     .reset_index(drop=True)
-    .sample(frac=0.05, random_state=42)
+    .sample(frac=0.20, random_state=42)
 )
 valid_1 = data_1.sample(frac=0.08, random_state=42)
 train_1 = data_1[~data_1.index.isin(valid_1.index)]
@@ -128,18 +149,100 @@ valid = (
 )
 
 del data_0, data_1, valid_0, valid_1, train_0, train_1
+
 all_ids = sentences["id"].to_list()
 train_ids = train["id"].to_list()
 valid_ids = valid["id"].to_list()
 
 # in kaggle notebook, validating is very time-consuming, so here I use a small validation set, rather than 5667.
-valid = valid.sample(n=2000, random_state=42)
+valid = valid.sample(n=3000, random_state=42)
+
+print(len(all_ids))
+print("train_ids", len(train_ids))
+print("valid_ids", len(valid_ids))
+
+thresh_size = 40000
+
+train_ids = [
+    train_id
+    for train_id in train_ids
+    if os.path.getsize(str(TRAIN / train_id) + ".mp3") < thresh_size
+]
+valid_ids = [
+    valid_id
+    for valid_id in valid_ids
+    if os.path.getsize(str(TRAIN / valid_id) + ".mp3") < thresh_size
+]
+
+print("train_ids", len(train_ids))
+print("valid_ids", len(valid_ids))
+
+train_ids = sorted(
+    train_ids, key=lambda train_id: os.path.getsize(str(TRAIN / train_id) + ".mp3")
+)
+
+# train_ids[0], train_ids[n], train_ids[1], train_ids[n-1], train_ids[2], train_ids[n-2], ... となるようにする
+train_ids_aligned = []
+for i in range(len(train_ids) // 2):
+    train_ids_aligned.append(train_ids[i])
+    train_ids_aligned.append(train_ids[len(train_ids) - 1 - i])
+
+train_ids = train_ids_aligned
+
+# valid_ids についても同様に
+valid_ids = sorted(
+    valid_ids, key=lambda valid_id: os.path.getsize(str(TRAIN / valid_id) + ".mp3")
+)
+
+valid_ids_aligned = []
+for i in range(len(valid_ids) // 2):
+    valid_ids_aligned.append(valid_ids[i])
+    valid_ids_aligned.append(valid_ids[len(valid_ids) - 1 - i])
+
+valid_ids = valid_ids_aligned
+
+
+# train_ids の中にある隣接する 2 つのファイルの容量の和の最小値・最大値を計算
+train_sizes = [
+    os.path.getsize(str(TRAIN / train_id) + ".mp3") for train_id in train_ids
+]
+min_train_adjacent_size = np.min(
+    [train_sizes[i] + train_sizes[i + 1] for i in range(len(train_sizes) - 1)]
+)
+max_train_adjacent_size = np.max(
+    [train_sizes[i] + train_sizes[i + 1] for i in range(len(train_sizes) - 1)]
+)
+
+# valid についても同様に
+valid_sizes = [
+    os.path.getsize(str(TRAIN / valid_id) + ".mp3") for valid_id in valid_ids
+]
+min_valid_adjacent_size = np.min(
+    [valid_sizes[i] + valid_sizes[i + 1] for i in range(len(valid_sizes) - 1)]
+)
+max_valid_adjacent_size = np.max(
+    [valid_sizes[i] + valid_sizes[i + 1] for i in range(len(valid_sizes) - 1)]
+)
+
+print(
+    "min_train_adjacent_size",
+    min_train_adjacent_size,
+    "max_train_adjacent_size",
+    max_train_adjacent_size,
+)
+print(
+    "min_valid_adjacent_size",
+    min_valid_adjacent_size,
+    "max_valid_adjacent_size",
+    max_valid_adjacent_size,
+)
+
 
 class W2v2Dataset(torch.utils.data.Dataset):
     def __init__(self, df):
         self.df = df
         self.pathes = df["id"].values
-        self.sentences = df["normalized"].values
+        self.sentences = df["sentence_normalized"].values
         self.resampler = tat.Resample(32000, SR)
 
     def __getitem__(self, idx):
@@ -203,8 +306,7 @@ class DataCollatorCTCWithPadding:
         input_features = [
             {"input_values": feature["input_values"]} for feature in features
         ]
-        label_features = [{"input_ids": feature["labels"]}
-                          for feature in features]
+        label_features = [{"input_ids": feature["labels"]} for feature in features]
 
         batch = self.processor.pad(
             input_features,
@@ -291,12 +393,12 @@ training_args = TrainingArguments(
     gradient_accumulation_steps=1,
     evaluation_strategy="steps",
     save_strategy="steps",
-    # max_steps=1000,  # you can change to "num_train_epochs"
-    num_train_epochs=7,
+    max_steps=40000,  # you can change to "num_train_epochs"
+    num_train_epochs=3,
     fp16=True,
     save_steps=2000,
-    eval_steps=500,
-    logging_steps=500,
+    eval_steps=1000,
+    logging_steps=1000,
     learning_rate=2e-5,
     warmup_steps=600,
     save_total_limit=1,
