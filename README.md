@@ -18,9 +18,16 @@ https://www.kaggle.com/competitions/bengaliai-speech
 - [random](random) : 手元での試行錯誤など
   - [beam_range_test.py](random/beam_range_test.py)
     - beam_width その他のハイパーパラメータを調整して train 内の wer を計測するためのファイル
-  - [finetune.ipynb](random/finetune.ipynb)
-    - finetuning するために作ったけど後回し
   - [measure_train_wer.ipynb](random/measure_train_wer.ipynb)
     - train 内の wer を計測するためのプログラム。beam_range_test の下位互換
   - [noise_reduction_test.ipynb](random/noise_reduction.ipynb), [noise_reduction.ipynb](random/noise_reduction.ipynb)
     - ノイズ減らしたら wer 下がるかなと思ったけどダダ上がりだったのでゴミになったやつ
+- [exp](exp)
+  - [finetune.py](exp/finetune.py)
+    - 既存のモデルをファインチューニングするやつ
+  - [measure_saved_model_wer.py](exp/measure_saved_model_wer.py)
+    - 作ったモデルの wer を測るやつ
+- input : ignore してるディレクトリ
+  - inspect
+    - exclusive_ids.csv
+      - [finetune.py](exp/finetune.py) で使わんかった音声データの id
