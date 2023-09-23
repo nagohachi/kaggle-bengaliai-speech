@@ -42,7 +42,7 @@ DATA = INPUT / "bengaliai-speech"
 TRAIN = DATA / "train_mp3s"
 TEST = DATA / "test_mp3s"
 
-output_dir = INPUT / "saved_model"
+output_dir = INPUT / "saved_model_small_finetuned_58730steps_2epochs"
 MODEL_PATH = INPUT / "bengali-wav2vec2-finetuned"
 LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model"
 
@@ -219,7 +219,11 @@ print(
     max_valid_adjacent_size,
 )
 
-# all_ids から train_ids と valid_ids を除外したものを exclusive_ids とする
+# train_ids と valid_ids を .csv に保存、"id" 列に id を入れる
+# pd.DataFrame({"id": train_ids}).to_csv(INPUT / "train_ids.csv", index=False)
+# pd.DataFrame({"id": valid_ids}).to_csv(INPUT / "valid_ids.csv", index=False)
+
+# # all_ids から train_ids と valid_ids を除外したものを exclusive_ids とする
 # train_ids_set = set(train_ids)
 # valid_ids_set = set(valid_ids)
 
@@ -391,8 +395,8 @@ training_args = TrainingArguments(
     gradient_accumulation_steps=2,
     evaluation_strategy="steps",
     save_strategy="steps",
-    max_steps=6000,  # you can change to "num_train_epochs"
-    # num_train_epochs=3,
+    # max_steps=12000,  # you can change to "num_train_epochs"
+    num_train_epochs=2,
     fp16=True,
     save_steps=2000,
     eval_steps=2000,
