@@ -15,3 +15,4 @@ beam_width: 768, mean_wer:0.456532, time per case: 0.7080617984135945 at 2023/09
 beam_width: 1024, mean_wer:0.455565, time per case: 1.0082080879211426 at 2023/09/22 10:38:35
 beam_width: 512, mean_wer:0.398330, time per case: 0.26709754808743796 at 2023/09/22 15:36:51
 beam_width: 768, mean_wer:0.397899, time per case: 0.4107017293771108 at 2023/09/22 15:36:51
+beam_width: 512, mean_wer:0.430927, time per case: 0.5968380928834279 at 2023/09/23 09:51:06

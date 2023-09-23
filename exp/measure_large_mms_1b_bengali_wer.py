@@ -18,22 +18,17 @@ import torch
 from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM, Wav2Vec2ForCTC
 from bnunicodenormalizer import Normalizer
 
-import cloudpickle as cpkl
+# import cloudpickle as cpkl
 
 # paths
 ROOT = Path.cwd().parent
 INPUT = ROOT / "input"
 DATA = INPUT / "bengaliai-speech"
 TRAIN = DATA / "train_mp3s"
-TRAIN_WAV = DATA / "train_wavs"
-TRAIN_WAV_NOISE_REDUCED = DATA / "train_wavs_noise_reduced"
 TEST = DATA / "test_mp3s"
 
-MODEL_PATH = INPUT / "wav2vec2-large-mms-1b-bengali/"
-LM_PATH = (
-    INPUT
-    / "bengali-sr-download-public-trained-models/wav2vec2-xls-r-300m-bengali/language_model/"
-)
+MODEL_PATH = INPUT / "saved_model_large-mms-1b-bengali/"
+LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model/"
 
 model = Wav2Vec2ForCTC.from_pretrained(MODEL_PATH)
 processor = Wav2Vec2Processor.from_pretrained(MODEL_PATH)
@@ -49,8 +44,9 @@ vocab_dict = processor.tokenizer.get_vocab()
 vocab_dict = vocab_dict["ben"]
 vocab_dict["<s>"] = 64
 vocab_dict["</s>"] = 65
-sorted_vocab_dict = {k: v for k, v in sorted(
-    vocab_dict.items(), key=lambda item: item[1])}
+sorted_vocab_dict = {
+    k: v for k, v in sorted(vocab_dict.items(), key=lambda item: item[1])
+}
 
 decoder = pyctcdecode.build_ctcdecoder(
     list(sorted_vocab_dict.keys()),
@@ -110,8 +106,7 @@ def create_test_loader():
 
 def create_train_loader(sampling_size, random_seed):
     train_random = train.sample(sampling_size, random_state=random_seed)
-    train_audio_paths = [str(TRAIN / f"{aid}.mp3")
-                         for aid in train_random["id"].values]
+    train_audio_paths = [str(TRAIN / f"{aid}.mp3") for aid in train_random["id"].values]
     train_dataset = BengaliSRTestDataset(train_audio_paths, SAMPLING_RATE)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -159,8 +154,7 @@ model.eval()
 
 
 def inference(sampling_size, random_seed, beam_width) -> float:
-    train_random, train_loader = create_train_loader(
-        sampling_size, random_seed)
+    train_random, train_loader = create_train_loader(sampling_size, random_seed)
     pred_sentence_list = []
     with torch.no_grad():
         for i, batch in enumerate(tqdm(train_loader)):
@@ -186,8 +180,7 @@ def inference(sampling_size, random_seed, beam_width) -> float:
             del x, y
     del train_loader
 
-    pp_pred_sentence_list = [postprocess(sentence)
-                             for sentence in pred_sentence_list]
+    pp_pred_sentence_list = [postprocess(sentence) for sentence in pred_sentence_list]
     wer = mean_wer(train_random["sentence"], pp_pred_sentence_list)
     return wer
 
