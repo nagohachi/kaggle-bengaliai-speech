@@ -51,6 +51,8 @@ from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM, Wav2Vec2For
 from transformers import TrainingArguments, Trainer, EarlyStoppingCallback
 import warnings
 
+from sklearn.model_selection import KFold
+
 warnings.filterwarnings("ignore")
 torchaudio.set_audio_backend("soundfile")
 
@@ -58,6 +60,7 @@ torchaudio.set_audio_backend("soundfile")
 # hyper-parameters
 SR = 16000
 torch.backends.cudnn.benchmark = True
+num_folds = 5
 
 ROOT = Path.cwd().parent
 INPUT = ROOT / "input"
@@ -91,153 +94,6 @@ decoder = pyctcdecode.build_ctcdecoder(
 # - Also, I use @UmongSain's normalized data [here](https://www.kaggle.com/code/umongsain/macro-normalization/notebook). Thanks to him!
 
 
-indexes = set(pd.read_csv(INDEXES_PATH)["id"])
-sentences = pd.read_csv(
-    DATA / "train_normalized_with_noise_info.csv",
-    dtype={
-        "id": str,
-        "mos_pred": float,
-        "noi_pred": float,
-        "dis_pred": float,
-        "col_pred": float,
-        "loud_pred": float,
-        "model": str,
-    },
-)
-
-print("sentence length", len(sentences))
-
-# sentence の中で、mos_pred が NaN または mos_pred が 1.5 以下のものを除外
-sentences = sentences[
-    ~((sentences["mos_pred"].isnull()) | (sentences["mos_pred"] <= 1.5))
-]
-
-print("sentence length", len(sentences))
-sentences = sentences[
-    ~((sentences.index.isin(indexes)) & (sentences["split"] == "train"))
-].reset_index(drop=True)
-
-
-print("sentence length", len(sentences))
-
-
-# * sample 10% data from "valid" part into validation set, 90% into training set.
-# * sample 50% data from "train" part, and additionally sample 8% from it into validation set, 92% into training set.
-
-
-data_0 = sentences.loc[sentences["split"] == "valid"].reset_index(drop=True)
-valid_0 = data_0.sample(frac=0.1, random_state=42)
-train_0 = data_0[~data_0.index.isin(valid_0.index)]
-
-data_1 = (
-    sentences.loc[sentences["split"] == "train"]
-    .reset_index(drop=True)
-    .sample(frac=0.50, random_state=42)
-)
-valid_1 = data_1.sample(frac=0.08, random_state=42)
-train_1 = data_1[~data_1.index.isin(valid_1.index)]
-
-train = (
-    pd.concat([train_0, train_1], axis=0)
-    .sample(frac=1, random_state=42)
-    .reset_index(drop=True)
-)
-valid = (
-    pd.concat([valid_0, valid_1], axis=0)
-    .sample(frac=1, random_state=42)
-    .reset_index(drop=True)
-)
-
-del data_0, data_1, valid_0, valid_1, train_0, train_1
-
-all_ids = sentences["id"].to_list()
-train_ids = train["id"].to_list()
-valid_ids = valid["id"].to_list()
-
-# in kaggle notebook, validating is very time-consuming, so here I use a small validation set, rather than 5667.
-valid = valid.sample(n=3000, random_state=42)
-
-print(len(all_ids))
-print("train_ids", len(train_ids))
-print("valid_ids", len(valid_ids))
-
-thresh_size = 50000
-
-train_ids = [
-    train_id
-    for train_id in train_ids
-    if os.path.getsize(str(TRAIN / train_id) + ".mp3") < thresh_size
-]
-valid_ids = [
-    valid_id
-    for valid_id in valid_ids
-    if os.path.getsize(str(TRAIN / valid_id) + ".mp3") < thresh_size
-]
-
-print("train_ids", len(train_ids))
-print("valid_ids", len(valid_ids))
-
-train_ids = sorted(
-    train_ids, key=lambda train_id: os.path.getsize(str(TRAIN / train_id) + ".mp3")
-)
-
-# train_ids[0], train_ids[n], train_ids[1], train_ids[n-1], train_ids[2], train_ids[n-2], ... となるようにする
-train_ids_aligned = []
-for i in range(len(train_ids) // 2):
-    train_ids_aligned.append(train_ids[i])
-    train_ids_aligned.append(train_ids[len(train_ids) - 1 - i])
-
-train_ids = train_ids_aligned
-
-# valid_ids についても同様に
-valid_ids = sorted(
-    valid_ids, key=lambda valid_id: os.path.getsize(str(TRAIN / valid_id) + ".mp3")
-)
-
-valid_ids_aligned = []
-for i in range(len(valid_ids) // 2):
-    valid_ids_aligned.append(valid_ids[i])
-    valid_ids_aligned.append(valid_ids[len(valid_ids) - 1 - i])
-
-valid_ids = valid_ids_aligned
-
-
-# train_ids の中にある隣接する 2 つのファイルの容量の和の最小値・最大値を計算
-train_sizes = [
-    os.path.getsize(str(TRAIN / train_id) + ".mp3") for train_id in train_ids
-]
-min_train_adjacent_size = np.min(
-    [train_sizes[i] + train_sizes[i + 1] for i in range(len(train_sizes) - 1)]
-)
-max_train_adjacent_size = np.max(
-    [train_sizes[i] + train_sizes[i + 1] for i in range(len(train_sizes) - 1)]
-)
-
-# valid についても同様に
-valid_sizes = [
-    os.path.getsize(str(TRAIN / valid_id) + ".mp3") for valid_id in valid_ids
-]
-min_valid_adjacent_size = np.min(
-    [valid_sizes[i] + valid_sizes[i + 1] for i in range(len(valid_sizes) - 1)]
-)
-max_valid_adjacent_size = np.max(
-    [valid_sizes[i] + valid_sizes[i + 1] for i in range(len(valid_sizes) - 1)]
-)
-
-print(
-    "min_train_adjacent_size",
-    min_train_adjacent_size,
-    "max_train_adjacent_size",
-    max_train_adjacent_size,
-)
-print(
-    "min_valid_adjacent_size",
-    min_valid_adjacent_size,
-    "max_valid_adjacent_size",
-    max_valid_adjacent_size,
-)
-
-
 class W2v2Dataset(torch.utils.data.Dataset):
     def __init__(self, df):
         self.df = df
@@ -259,10 +115,6 @@ class W2v2Dataset(torch.utils.data.Dataset):
 
     def __len__(self):
         return len(self.df)
-
-
-train_dataset = W2v2Dataset(train)
-valid_dataset = W2v2Dataset(valid)
 
 
 @dataclass
@@ -337,27 +189,6 @@ class DataCollatorCTCWithPadding:
 data_collator = DataCollatorCTCWithPadding(processor=processor, padding=True)
 
 
-# - In kaggle notebook, there is an error: **cannot import name 'compute_measures' from 'jiwer' (unknown location)**. But in my local notebook, there is no such error.
-
-
-wer_metric = load_metric("wer")
-
-
-def compute_metrics(pred):
-    pred_logits = pred.predictions
-    pred_ids = np.argmax(pred_logits, axis=-1)
-
-    pred.label_ids[pred.label_ids == -100] = processor.tokenizer.pad_token_id
-
-    pred_str = processor.batch_decode(pred_ids)
-    # we do not want to group tokens when computing the metrics
-    label_str = processor.batch_decode(pred.label_ids, group_tokens=False)
-
-    wer = wer_metric.compute(predictions=pred_str, references=label_str)
-
-    return {"wer": wer}
-
-
 model = Wav2Vec2ForCTC.from_pretrained(
     MODEL_PATH,
     attention_dropout=0.1,
@@ -376,10 +207,6 @@ model = Wav2Vec2ForCTC.from_pretrained(
 
 # you can freeze some params
 model.freeze_feature_extractor()
-
-
-# - As a demo, "**num_train_epochs**", "**eval_steps**" and "**early_stopping_patience**" are set to very small values, you can make them larger.
-# - If there is no error about jiwer, you can set **metric_for_best_model**="wer", and remember to set **greater_is_better**=False and use **compute_metrics**.
 
 
 training_args = TrainingArguments(
@@ -410,31 +237,101 @@ training_args = TrainingArguments(
     report_to="none",
 )
 
+kf = KFold(n_splits=num_folds, shuffle=True, random_state=42)
 
-trainer = Trainer(
-    model=model,
-    data_collator=data_collator,
-    args=training_args,
-    # compute_metrics=compute_metrics,
-    train_dataset=train_dataset,
-    eval_dataset=valid_dataset,
-    tokenizer=processor.feature_extractor,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+indexes = set(pd.read_csv(INDEXES_PATH)["id"])
+sentences = pd.read_csv(
+    DATA / "train_normalized_with_noise_info.csv",
+    dtype={
+        "id": str,
+        "mos_pred": float,
+        "noi_pred": float,
+        "dis_pred": float,
+        "col_pred": float,
+        "loud_pred": float,
+        "model": str,
+    },
 )
 
+# sentence の中で、mos_pred が NaN または mos_pred が 1.5 以下のものを除外
+# sentences = sentences[
+#     ~((sentences["mos_pred"].isnull()) | (sentences["mos_pred"] <= 1.5))
+# ]
 
-trainer.train()
+sentences = sentences[
+    ~((sentences.index.isin(indexes)) & (sentences["split"] == "train"))
+].reset_index(drop=True)
+
+for fold, (train_index, val_index) in enumerate(kf.split(sentences)):
+    print(f"Training for fold {fold}")
+
+    # train_index と val_index を使用してデータフレームをサブセットに分割
+    train_fold_df = sentences.iloc[train_index].reset_index(drop=True)
+    valid_fold_df = sentences.iloc[val_index].reset_index(drop=True)
+
+    # 以下、元のコードのロジックを適用
+    data_0 = train_fold_df.loc[train_fold_df["split"] == "valid"].reset_index(drop=True)
+    valid_0 = data_0.sample(frac=0.1, random_state=42)
+    train_0 = data_0[~data_0.index.isin(valid_0.index)]
+
+    data_1 = (
+        train_fold_df.loc[train_fold_df["split"] == "train"]
+        .reset_index(drop=True)
+        .sample(frac=0.10, random_state=42)
+    )
+    valid_1 = data_1.sample(frac=0.08, random_state=42)
+    train_1 = data_1[~data_1.index.isin(valid_1.index)]
+
+    train = (
+        pd.concat([train_0, train_1], axis=0)
+        .sample(frac=1, random_state=42)
+        .reset_index(drop=True)
+    )
+    valid = (
+        pd.concat([valid_0, valid_1], axis=0)
+        .sample(frac=1, random_state=42)
+        .reset_index(drop=True)
+    )
+
+    # 新しい W2v2Dataset インスタンスを作成
+    train_dataset_fold = W2v2Dataset(train)
+    valid_dataset_fold = W2v2Dataset(valid)
+
+    trainer = Trainer(
+        model=model,
+        data_collator=data_collator,
+        args=training_args,
+        train_dataset=train_dataset_fold,
+        eval_dataset=valid_dataset_fold,
+        tokenizer=processor.feature_extractor,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+    )
+
+    trainer.train()
+    fold_output_dir = f"{output_dir}/fold_{fold}"
+    trainer.save_model(fold_output_dir)
+    model.save_pretrained(fold_output_dir)
+    processor.feature_extractor.save_pretrained(fold_output_dir)
 
 
-# - To improve scores you can:
-#     * use different pretrained models
-#     * alter the parameters
-#     * choose more data
-#     * filter data in another way.
+# 各 fold で保存されたモデルの path
+fold_model_paths = [f"{output_dir}/fold_{fold}/" for fold in range(num_folds)]
 
+models = [
+    Wav2Vec2ForCTC.from_pretrained(fold_model_path)
+    for fold_model_path in fold_model_paths
+]
 
-trainer.save_model(output_dir)
+from collections import OrderedDict
 
+average_params = OrderedDict()
 
-model.save_pretrained(output_dir)
-processor.feature_extractor.save_pretrained(output_dir)
+for name, param in models[0].named_parameters():
+    average_params[name] = sum(model.state_dict()[name] for model in models) / len(
+        models
+    )
+
+ensemble_model = Wav2Vec2ForCTC.from_pretrained(fold_model_paths[0])
+ensemble_model.load_state_dict(average_params)
+
+ensemble_model.save_pretrained(f"{output_dir}/ensemble")
