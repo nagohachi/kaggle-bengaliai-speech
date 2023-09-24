@@ -264,6 +264,8 @@ sentences = sentences[
 
 for fold, (train_index, val_index) in enumerate(kf.split(sentences)):
     print(f"Training for fold {fold}")
+    with open("./finetune.log", "a") as f:
+        f.write(f"Training for fold {fold}\n")
 
     # train_index と val_index を使用してデータフレームをサブセットに分割
     train_fold_df = sentences.iloc[train_index].reset_index(drop=True)
