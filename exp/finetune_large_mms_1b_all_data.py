@@ -68,7 +68,7 @@ DATA = INPUT / "bengaliai-speech"
 TRAIN = DATA / "train_mp3s"
 TEST = DATA / "test_mp3s"
 
-output_dir = INPUT / "saved_model_large-mms-1b-bengali"
+output_dir = INPUT / "saved_model_large-mms-1b-bengali-fold"
 MODEL_PATH = INPUT / "wav2vec2-large-mms-1b-bengali/"
 LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model"
 
