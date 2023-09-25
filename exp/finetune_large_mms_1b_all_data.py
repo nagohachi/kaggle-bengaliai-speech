@@ -237,7 +237,6 @@ training_args = TrainingArguments(
     report_to="none",
 )
 
-kf = KFold(n_splits=num_folds, shuffle=True, random_state=42)
 
 indexes = set(pd.read_csv(INDEXES_PATH)["id"])
 sentences = pd.read_csv(
@@ -262,42 +261,54 @@ sentences = sentences[
     ~((sentences.index.isin(indexes)) & (sentences["split"] == "train"))
 ].reset_index(drop=True)
 
-for fold, (train_index, val_index) in enumerate(kf.split(sentences)):
+print("sentences_size", len(sentences))
+
+sentences_split_train = sentences[sentences["split"] == "train"].reset_index(drop=True)
+sentences_split_valid = sentences[sentences["split"] == "valid"].reset_index(drop=True)
+
+# sample 5% of train split and 10% of valid split
+sentences_split_train = sentences_split_train.sample(frac=0.05, random_state=42)
+sentences_split_valid = sentences_split_valid.sample(frac=0.1, random_state=42)
+
+print("sentences_split_train_size", len(sentences_split_train))
+print("sentences_split_valid_size", len(sentences_split_valid))
+
+kf = KFold(n_splits=num_folds, shuffle=True, random_state=42)
+for fold in range(num_folds):
     print(f"Training for fold {fold}")
-    with open("./finetune.log", "a") as f:
-        f.write(f"Training for fold {fold}\n")
 
-    # train_index と val_index を使用してデータフレームをサブセットに分割
-    train_fold_df = sentences.iloc[train_index].reset_index(drop=True)
-    valid_fold_df = sentences.iloc[val_index].reset_index(drop=True)
+    # 'train' と 'valid' それぞれに対して KFold を適用
+    train_index_train, val_index_train = list(kf.split(sentences_split_train))[fold]
+    train_index_valid, val_index_valid = list(kf.split(sentences_split_valid))[fold]
 
-    # 以下、元のコードのロジックを適用
-    data_0 = train_fold_df.loc[train_fold_df["split"] == "valid"].reset_index(drop=True)
-    valid_0 = data_0.sample(frac=0.1, random_state=42)
-    train_0 = data_0[~data_0.index.isin(valid_0.index)]
-
-    data_1 = (
-        train_fold_df.loc[train_fold_df["split"] == "train"]
-        .reset_index(drop=True)
-        .sample(frac=0.10, random_state=42)
+    # サブセットを取得
+    train_fold_train = sentences_split_train.iloc[train_index_train].reset_index(
+        drop=True
     )
-    valid_1 = data_1.sample(frac=0.08, random_state=42)
-    train_1 = data_1[~data_1.index.isin(valid_1.index)]
-
-    train = (
-        pd.concat([train_0, train_1], axis=0)
-        .sample(frac=1, random_state=42)
-        .reset_index(drop=True)
-    )
-    valid = (
-        pd.concat([valid_0, valid_1], axis=0)
-        .sample(frac=1, random_state=42)
-        .reset_index(drop=True)
+    valid_fold_train = sentences_split_train.iloc[val_index_train].reset_index(
+        drop=True
     )
 
-    # 新しい W2v2Dataset インスタンスを作成
-    train_dataset_fold = W2v2Dataset(train)
-    valid_dataset_fold = W2v2Dataset(valid)
+    train_fold_valid = sentences_split_valid.iloc[train_index_valid].reset_index(
+        drop=True
+    )
+    valid_fold_valid = sentences_split_valid.iloc[val_index_valid].reset_index(
+        drop=True
+    )
+
+    # 各foldでの 'train' と 'valid' のデータを結合
+    train_fold = pd.concat([train_fold_train, train_fold_valid], axis=0).reset_index(
+        drop=True
+    )
+    valid_fold = pd.concat([valid_fold_train, valid_fold_valid], axis=0).reset_index(
+        drop=True
+    )
+
+    print("train_fold size", len(train_fold))
+    print("valid_fold size", len(valid_fold))
+
+    train_dataset_fold = W2v2Dataset(train_fold)
+    valid_dataset_fold = W2v2Dataset(valid_fold)
 
     trainer = Trainer(
         model=model,
