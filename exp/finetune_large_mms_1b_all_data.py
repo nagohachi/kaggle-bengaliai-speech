@@ -239,7 +239,7 @@ training_args = TrainingArguments(
     fp16=True,
     save_steps=5000,
     eval_steps=5000,
-    logging_steps=1000,
+    logging_steps=100,
     learning_rate=5e-5,
     warmup_steps=600,
     save_total_limit=1,
@@ -298,6 +298,18 @@ sentences_split_valid = sentences_split_valid.sample(frac=0.8, random_state=42)
 print("sentences_split_train_size", len(sentences_split_train))
 print("sentences_split_valid_size", len(sentences_split_valid))
 
+from transformers import TrainerCallback
+
+
+class ProgressLoggingCallback(TrainerCallback):
+    def __init__(self, total_steps):
+        self.total_steps = total_steps
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        progress_percent = (state.global_step / self.total_steps) * 100
+        wandb.log({"progress_percent": progress_percent})
+
+
 kf = KFold(n_splits=num_folds, shuffle=True, random_state=42)
 for fold in range(num_folds):
     print(f"Training for fold {fold}")
@@ -335,6 +347,12 @@ for fold in range(num_folds):
     train_dataset_fold = W2v2Dataset(train_fold)
     valid_dataset_fold = W2v2Dataset(valid_fold)
 
+    total_steps = (
+        len(train_dataset_fold)
+        // training_args.per_device_train_batch_size
+        * training_args.num_train_epochs
+    )
+
     trainer = Trainer(
         model=model,
         data_collator=data_collator,
@@ -342,7 +360,10 @@ for fold in range(num_folds):
         train_dataset=train_dataset_fold,
         eval_dataset=valid_dataset_fold,
         tokenizer=processor.feature_extractor,
-        callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
+        callbacks=[
+            EarlyStoppingCallback(early_stopping_patience=5),
+            ProgressLoggingCallback(total_steps),
+        ],
     )
 
     trainer.train()
