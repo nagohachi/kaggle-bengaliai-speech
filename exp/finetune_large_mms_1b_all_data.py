@@ -257,6 +257,17 @@ sentences = pd.read_csv(
 #     ~((sentences["mos_pred"].isnull()) | (sentences["mos_pred"] <= 1.5))
 # ]
 
+# sentences の中で、mos_pred が 1.5 以上のものを 70 %, それ以外のものを 30 % で構成されるようにする
+sentences = pd.concat(
+    [
+        sentences[sentences["mos_pred"] < 1.5].sample(frac=0.3, random_state=42),
+        sentences[sentences["mos_pred"] >= 1.5].sample(frac=0.7, random_state=42),
+    ]
+).reset_index(drop=True)
+
+# sentences がランダムな順番になるようにシャッフル
+sentences = sentences.sample(frac=1, random_state=42).reset_index(drop=True)
+
 sentences = sentences[
     ~((sentences.index.isin(indexes)) & (sentences["split"] == "train"))
 ].reset_index(drop=True)
@@ -266,9 +277,9 @@ print("sentences_size", len(sentences))
 sentences_split_train = sentences[sentences["split"] == "train"].reset_index(drop=True)
 sentences_split_valid = sentences[sentences["split"] == "valid"].reset_index(drop=True)
 
-# sample 20% of train split and 10% of valid split
-sentences_split_train = sentences_split_train.sample(frac=0.2, random_state=42)
-sentences_split_valid = sentences_split_valid.sample(frac=0.1, random_state=42)
+# sample 8% of train split and 80% of valid split
+sentences_split_train = sentences_split_train.sample(frac=0.08, random_state=42)
+sentences_split_valid = sentences_split_valid.sample(frac=0.8, random_state=42)
 
 print("sentences_split_train_size", len(sentences_split_train))
 print("sentences_split_valid_size", len(sentences_split_valid))
