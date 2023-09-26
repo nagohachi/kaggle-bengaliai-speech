@@ -53,6 +53,20 @@ import warnings
 
 from sklearn.model_selection import KFold
 
+import wandb
+
+wandb.init(
+    project="wav2vec2-large-mms-1b-bengali",
+    name="nagohachi",
+    config={
+        "epochs": 3,
+        "batch_size": 8,
+        "learning_rate": 5e-5,
+        "folds": 3,
+        "model": "wav2vec2-large-mms-1b-bengali",
+    },
+)
+
 warnings.filterwarnings("ignore")
 torchaudio.set_audio_backend("soundfile")
 
@@ -234,7 +248,7 @@ training_args = TrainingArguments(
     # greater_is_better=False,
     prediction_loss_only=False,
     auto_find_batch_size=True,
-    report_to="none",
+    report_to="wandb",
 )
 
 
