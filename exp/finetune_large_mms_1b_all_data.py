@@ -60,7 +60,7 @@ torchaudio.set_audio_backend("soundfile")
 # hyper-parameters
 SR = 16000
 torch.backends.cudnn.benchmark = True
-num_folds = 5
+num_folds = 3
 
 ROOT = Path.cwd().parent
 INPUT = ROOT / "input"
@@ -215,13 +215,13 @@ training_args = TrainingArguments(
     group_by_length=False,
     lr_scheduler_type="cosine",
     weight_decay=0.01,
-    per_device_train_batch_size=4,
+    per_device_train_batch_size=8,
     per_device_eval_batch_size=16,
     gradient_accumulation_steps=1,
     evaluation_strategy="steps",
     save_strategy="steps",
     # max_steps=80000,  # you can change to "num_train_epochs"
-    num_train_epochs=5,
+    num_train_epochs=3,
     fp16=True,
     save_steps=4000,
     eval_steps=2000,
@@ -266,8 +266,8 @@ print("sentences_size", len(sentences))
 sentences_split_train = sentences[sentences["split"] == "train"].reset_index(drop=True)
 sentences_split_valid = sentences[sentences["split"] == "valid"].reset_index(drop=True)
 
-# sample 5% of train split and 10% of valid split
-sentences_split_train = sentences_split_train.sample(frac=0.05, random_state=42)
+# sample 20% of train split and 10% of valid split
+sentences_split_train = sentences_split_train.sample(frac=0.2, random_state=42)
 sentences_split_valid = sentences_split_valid.sample(frac=0.1, random_state=42)
 
 print("sentences_split_train_size", len(sentences_split_train))
