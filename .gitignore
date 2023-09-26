@@ -167,3 +167,4 @@ input/
 src/submission.csv
 
 finetune.log
+wandb/
