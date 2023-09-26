@@ -42,7 +42,7 @@ DATA = INPUT / "bengaliai-speech"
 TRAIN = DATA / "train_mp3s"
 TEST = DATA / "test_mp3s"
 
-output_dir = INPUT / "saved_model_small_finetuned_58730steps_2epochs"
+output_dir = INPUT / "saved_model"
 MODEL_PATH = INPUT / "bengali-wav2vec2-finetuned"
 LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model"
 
@@ -104,7 +104,7 @@ print("sentence length", len(sentences))
 
 
 # * sample 10% data from "valid" part into validation set, 90% into training set.
-# * sample 20% data from "train" part, and additionally sample 8% from it into validation set, 92% into training set.
+# * sample 40% data from "train" part, and additionally sample 8% from it into validation set, 92% into training set.
 
 
 data_0 = sentences.loc[sentences["split"] == "valid"].reset_index(drop=True)
@@ -114,7 +114,7 @@ train_0 = data_0[~data_0.index.isin(valid_0.index)]
 data_1 = (
     sentences.loc[sentences["split"] == "train"]
     .reset_index(drop=True)
-    .sample(frac=0.20, random_state=42)
+    .sample(frac=0.40, random_state=42)
 )
 valid_1 = data_1.sample(frac=0.08, random_state=42)
 train_1 = data_1[~data_1.index.isin(valid_1.index)]
@@ -422,7 +422,7 @@ trainer = Trainer(
     train_dataset=train_dataset,
     eval_dataset=valid_dataset,
     tokenizer=processor.feature_extractor,
-    callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
+    callbacks=[EarlyStoppingCallback(early_stopping_patience=5)],
 )
 
 
