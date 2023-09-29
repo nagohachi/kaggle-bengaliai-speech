@@ -29,6 +29,19 @@ from transformers import (
 
 from sklearn.model_selection import KFold
 
+import wandb
+
+wandb.init(
+    project="wav2vec2-small-bengali",
+    name="nagohachi",
+    config={
+        "epochs": 3,
+        "batch_size": 8,
+        "learning_rate": 5e-5,
+        "folds": 3,
+    },
+)
+
 warnings.filterwarnings("ignore")
 torchaudio.set_audio_backend("soundfile")
 
@@ -44,8 +57,8 @@ DATA = INPUT / "bengaliai-speech"
 TRAIN = DATA / "train_mp3s"
 TEST = DATA / "test_mp3s"
 
-output_dir = INPUT / "saved_model-small-fold"
-MODEL_PATH = INPUT / "bengali-wav2vec2-finetuned"
+output_dir = INPUT / "saved_model-finetune-from-beggining-small-fold"
+MODEL_PATH = INPUT / "arijitx-full-model/indicwav2vec_v1_bengali"
 LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model"
 
 SENTENCES_PATH = INPUT / "macro-normalization/normalized.csv"
@@ -91,10 +104,13 @@ sentences = pd.read_csv(
 
 print("sentence length", len(sentences))
 
-# sentence の中で、mos_pred が NaN または mos_pred が 1.5 以下のものを除外
-sentences = sentences[
-    ~((sentences["mos_pred"].isnull()) | (sentences["mos_pred"] <= 1.5))
-]
+# sentences の中で、mos_pred が 1.5 以上のものを 80 %, それ以外のものを 20 % で構成されるようにする
+sentences = pd.concat(
+    [
+        sentences[sentences["mos_pred"] < 1.5].sample(frac=0.2, random_state=42),
+        sentences[sentences["mos_pred"] >= 1.5].sample(frac=0.8, random_state=42),
+    ]
+).reset_index(drop=True)
 
 print("sentence length", len(sentences))
 sentences = sentences[
@@ -106,8 +122,8 @@ print("sentence length", len(sentences))
 sentences_split_train = sentences[sentences["split"] == "train"].reset_index(drop=True)
 sentences_split_valid = sentences[sentences["split"] == "valid"].reset_index(drop=True)
 
-# sample 20% of train split and 80% of valid split
-sentences_split_train = sentences_split_train.sample(frac=0.15, random_state=42)
+# sample 50% of train split and 80% of valid split
+sentences_split_train = sentences_split_train.sample(frac=0.50, random_state=42)
 sentences_split_valid = sentences_split_valid.sample(frac=0.8, random_state=42)
 
 print("sentences_split_train_size", len(sentences_split_train))
@@ -281,18 +297,18 @@ training_args = TrainingArguments(
     group_by_length=False,
     lr_scheduler_type="cosine",
     weight_decay=0.01,
-    per_device_train_batch_size=2,
-    per_device_eval_batch_size=8,
-    gradient_accumulation_steps=2,
+    per_device_train_batch_size=8,
+    per_device_eval_batch_size=16,
+    gradient_accumulation_steps=1,
     evaluation_strategy="steps",
     save_strategy="steps",
     # max_steps=12000,  # you can change to "num_train_epochs"
-    num_train_epochs=2,
+    num_train_epochs=3,
     fp16=True,
-    save_steps=2000,
-    eval_steps=2000,
+    save_steps=5000,
+    eval_steps=5000,
     logging_steps=500,
-    learning_rate=2e-5,
+    learning_rate=5e-5,
     warmup_steps=600,
     save_total_limit=1,
     load_best_model_at_end=True,
@@ -300,7 +316,7 @@ training_args = TrainingArguments(
     # greater_is_better=False,
     prediction_loss_only=False,
     auto_find_batch_size=True,
-    report_to="none",
+    report_to="wandb",
     remove_unused_columns=True,
 )
 
