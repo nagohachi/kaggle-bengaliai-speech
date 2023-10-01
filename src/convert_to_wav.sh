@@ -2,7 +2,7 @@
 
 # ディレクトリのパスを変数に設定
 SRC_DIR="../input/bengaliai-speech/train_mp3s"
-DST_DIR="../input/bengaliai-speech/train_wavs"
+DST_DIR="../input/train_wavs"
 
 # .wav 用のディレクトリが存在しない場合、作成
 mkdir -p "$DST_DIR"
@@ -21,5 +21,8 @@ for mp3file in "$SRC_DIR"/*.mp3; do
     # ffmpeg を使って .mp3 から .wav に変換（出力を非表示にする）
     ffmpeg -i "$mp3file" "$DST_DIR/$filename_noext.wav" > /dev/null 2>&1
     COUNTER=$((COUNTER+1))
-    echo "Converted $COUNTER/$TOTAL_FILES"
+    # 100 の倍数のときに進捗を表示
+    if [ $((COUNTER % 100)) -eq 0 ]; then
+        echo "Converted $COUNTER/$TOTAL_FILES"
+    fi
 done

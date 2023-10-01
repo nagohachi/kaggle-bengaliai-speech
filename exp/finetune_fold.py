@@ -104,11 +104,11 @@ sentences = pd.read_csv(
 
 print("sentence length", len(sentences))
 
-# sentences の中で、mos_pred が 1.5 以上のものを 80 %, それ以外のものを 20 % で構成されるようにする
+# sentences の中で、mos_pred が 2 以上のものを 80 %, それ以外のものを 20 % で構成されるようにする
 sentences = pd.concat(
     [
-        sentences[sentences["mos_pred"] < 1.5].sample(frac=0.2, random_state=42),
-        sentences[sentences["mos_pred"] >= 1.5].sample(frac=0.8, random_state=42),
+        sentences[sentences["mos_pred"] < 2].sample(frac=0.2, random_state=42),
+        sentences[sentences["mos_pred"] >= 2].sample(frac=0.8, random_state=42),
     ]
 ).reset_index(drop=True)
 
@@ -123,7 +123,7 @@ sentences_split_train = sentences[sentences["split"] == "train"].reset_index(dro
 sentences_split_valid = sentences[sentences["split"] == "valid"].reset_index(drop=True)
 
 # sample 50% of train split and 80% of valid split
-sentences_split_train = sentences_split_train.sample(frac=0.50, random_state=42)
+sentences_split_train = sentences_split_train.sample(frac=0.70, random_state=42)
 sentences_split_valid = sentences_split_valid.sample(frac=0.8, random_state=42)
 
 print("sentences_split_train_size", len(sentences_split_train))
@@ -312,8 +312,8 @@ training_args = TrainingArguments(
     warmup_steps=600,
     save_total_limit=1,
     load_best_model_at_end=True,
-    # metric_for_best_model="wer",
-    # greater_is_better=False,
+    metric_for_best_model="wer",
+    greater_is_better=False,
     prediction_loss_only=False,
     auto_find_batch_size=True,
     report_to="wandb",
@@ -339,11 +339,19 @@ for fold in range(num_folds):
     valid_fold_train = sentences_split_train.iloc[val_index_train].reset_index(
         drop=True
     )
+    # 1 / 5 にする
+    valid_fold_train = valid_fold_train.sample(frac=0.2, random_state=42).reset_index(
+        drop=True
+    )
 
     train_fold_valid = sentences_split_valid.iloc[train_index_valid].reset_index(
         drop=True
     )
     valid_fold_valid = sentences_split_valid.iloc[val_index_valid].reset_index(
+        drop=True
+    )
+    # 1 / 5 にする
+    valid_fold_valid = valid_fold_valid.sample(frac=0.2, random_state=42).reset_index(
         drop=True
     )
 
@@ -369,8 +377,9 @@ for fold in range(num_folds):
         eval_dataset=valid_dataset_fold,
         tokenizer=processor.feature_extractor,
         callbacks=[
-            EarlyStoppingCallback(early_stopping_patience=5),
+            EarlyStoppingCallback(early_stopping_patience=3),
         ],
+        compute_metrics=compute_metrics,
     )
 
     trainer.train()

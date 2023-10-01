@@ -24,15 +24,12 @@ INPUT = ROOT / "input"
 DATA = INPUT / "bengaliai-speech"
 INSPECT = INPUT / "inspect"
 TRAIN = DATA / "train_mp3s"
-TRAIN_WAV = DATA / "train_wavs"
+TRAIN_WAV = INPUT / "train_wavs"
 TRAIN_WAV_NOISE_REDUCED = DATA / "train_wavs_noise_reduced"
 TEST = DATA / "test_mp3s"
 
-MODEL_PATH = INPUT / "saved_model-finetune-from-beggining-small-fold/ensemble"
-LM_PATH = (
-    INPUT
-    / "bengali-sr-download-public-trained-models/wav2vec2-xls-r-300m-bengali/language_model/"
-)
+MODEL_PATH = INPUT / "saved_model-finetune-from-beggining-small-fold/ensemble/"
+LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model/"
 
 model = Wav2Vec2ForCTC.from_pretrained(MODEL_PATH)
 processor = Wav2Vec2Processor.from_pretrained(MODEL_PATH)
@@ -81,6 +78,10 @@ class BengaliSRTestDataset(torch.utils.data.Dataset):
         sr = self.sampling_rate
         w = librosa.load(audio_path, sr=sr, mono=False)[0]
 
+        # 空の場合は empty file と print
+        if len(w) == 0:
+            print("!!!!!", audio_path, "is empty file !!!!!")
+
         return w
 
 
@@ -110,7 +111,9 @@ def create_test_loader():
 
 def create_train_loader(sampling_size, random_seed):
     train_random = train.sample(sampling_size, random_state=random_seed)
-    train_audio_paths = [str(TRAIN / f"{aid}.mp3") for aid in train_random["id"].values]
+    train_audio_paths = [
+        str(TRAIN_WAV / f"{aid}.wav") for aid in train_random["id"].values
+    ]
     train_dataset = BengaliSRTestDataset(train_audio_paths, SAMPLING_RATE)
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
