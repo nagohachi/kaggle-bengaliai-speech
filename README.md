@@ -27,6 +27,10 @@ https://www.kaggle.com/competitions/bengaliai-speech
     - 既存のモデルをファインチューニングするやつ
   - [measure_saved_model_wer.py](exp/measure_saved_model_wer.py)
     - 作ったモデルの wer を測るやつ
+  - [finetune_fold_wav2vec2-small-7000-clear80p.py](exp/finetune_fold_wav2vec2-small-70000-clear80p.py)
+    - mos_pred が高いやつを多めにして finetuning するやつ
+  - [finetune_with_commonvoice.py](exp/finetune_with_commonvoice.py)
+    - finetune_fold_wav2vec2-small-7000-clear80p.py を [Common Voice 13](https://www.kaggle.com/datasets/umongsain/common-voice-13-bengali-normalized) で 2 段階ファインチューニングするやつ
 - input : ignore してるディレクトリ
   - inspect
     - exclusive_ids.csv
