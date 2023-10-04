@@ -36,7 +36,7 @@ wandb.init(
     name="nagohachi",
     config={
         "epochs": 3,
-        "batch_size": 8,
+        "batch_size": 4,
         "learning_rate": 5e-5,
         "folds": 3,
     },
@@ -107,7 +107,7 @@ print("sentence length", len(sentences))
 # sentences の中で、mos_pred が 2 以上のものの 10 %, それ以外のものの 90 % で構成されるようにする
 sentences = pd.concat(
     [
-        sentences[sentences["mos_pred"] < 2].sample(frac=0.1, random_state=42),
+        sentences[sentences["mos_pred"] < 2].sample(frac=0.08, random_state=42),
         sentences[sentences["mos_pred"] >= 2].sample(frac=0.9, random_state=42),
     ]
 ).reset_index(drop=True)
@@ -123,12 +123,11 @@ sentences_split_train = sentences[sentences["split"] == "train"].reset_index(dro
 sentences_split_valid = sentences[sentences["split"] == "valid"].reset_index(drop=True)
 
 # sample 50% of train split and 80% of valid split
-sentences_split_train = sentences_split_train.sample(frac=0.70, random_state=42)
-sentences_split_valid = sentences_split_valid.sample(frac=0.8, random_state=42)
+sentences_split_train = sentences_split_train.sample(frac=0.3, random_state=42)
+sentences_split_valid = sentences_split_valid.sample(frac=0.4, random_state=42)
 
 print("sentences_split_train_size", len(sentences_split_train))
 print("sentences_split_valid_size", len(sentences_split_valid))
-
 
 # train_ids と valid_ids を .csv に保存、"id" 列に id を入れる
 # pd.DataFrame({"id": train_ids}).to_csv(INPUT / "train_ids.csv", index=False)
@@ -297,8 +296,8 @@ training_args = TrainingArguments(
     group_by_length=False,
     lr_scheduler_type="cosine",
     weight_decay=0.01,
-    per_device_train_batch_size=8,
-    per_device_eval_batch_size=16,
+    per_device_train_batch_size=4,
+    per_device_eval_batch_size=8,
     gradient_accumulation_steps=1,
     evaluation_strategy="steps",
     save_strategy="steps",
