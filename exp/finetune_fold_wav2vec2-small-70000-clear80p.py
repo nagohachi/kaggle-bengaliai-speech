@@ -32,7 +32,7 @@ from sklearn.model_selection import KFold
 import wandb
 
 wandb.init(
-    project="wav2vec2-small-bengali",
+    project="wav2vec2-small-bengali-without-unigram",
     name="nagohachi",
     config={
         "epochs": 3,
@@ -57,7 +57,7 @@ DATA = INPUT / "bengaliai-speech"
 TRAIN = DATA / "train_mp3s"
 TEST = DATA / "test_mp3s"
 
-output_dir = INPUT / "wav2vec2-small-70000-clear80p"
+output_dir = INPUT / "wav2vec2-small-70000-clear80p-with-unigram"
 MODEL_PATH = INPUT / "arijitx-full-model/indicwav2vec_v1_bengali"
 LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model"
 
@@ -74,7 +74,7 @@ sorted_vocab_dict = {
 decoder = pyctcdecode.build_ctcdecoder(
     list(sorted_vocab_dict.keys()),
     str(LM_PATH) + "/5gram.bin",
-    # str(LM_PATH) + "/unigrams.txt",
+    str(LM_PATH) + "/unigrams.txt",
 )
 processor_with_lm = Wav2Vec2ProcessorWithLM(
     feature_extractor=processor.feature_extractor,

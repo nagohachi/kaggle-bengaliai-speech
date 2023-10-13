@@ -35,10 +35,10 @@ wandb.init(
     project="wav2vec2-small-bengali",
     name="nagohachi",
     config={
-        "epochs": 3,
+        "epochs": 5,
         "batch_size": 8,
         "learning_rate": 5e-5,
-        "folds": 3,
+        "folds": 4,
     },
 )
 
@@ -57,7 +57,7 @@ DATA = INPUT / "bengaliai-speech"
 TRAIN = DATA / "train_mp3s"
 TEST = DATA / "test_mp3s"
 
-output_dir = INPUT / "saved_model-finetune-from-beggining-small-fold"
+output_dir = INPUT / "wav2vec2-small-70000-clear80p-without-unigram"
 MODEL_PATH = INPUT / "arijitx-full-model/indicwav2vec_v1_bengali"
 LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model"
 
@@ -303,7 +303,7 @@ training_args = TrainingArguments(
     evaluation_strategy="steps",
     save_strategy="steps",
     # max_steps=12000,  # you can change to "num_train_epochs"
-    num_train_epochs=5,
+    num_train_epochs=3,
     fp16=True,
     save_steps=5000,
     eval_steps=5000,
@@ -320,7 +320,7 @@ training_args = TrainingArguments(
     remove_unused_columns=True,
 )
 
-num_folds = 4
+num_folds = 3
 kf = KFold(n_splits=num_folds, shuffle=True, random_state=42)
 
 for fold in range(num_folds):
