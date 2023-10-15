@@ -32,7 +32,7 @@ from sklearn.model_selection import KFold
 import wandb
 
 wandb.init(
-    project="wav2vec2-small-bengali",
+    project="wav2vec2-small-bengali-without-unigram",
     name="nagohachi",
     config={
         "epochs": 5,
@@ -297,13 +297,13 @@ training_args = TrainingArguments(
     group_by_length=False,
     lr_scheduler_type="cosine",
     weight_decay=0.01,
-    per_device_train_batch_size=8,
-    per_device_eval_batch_size=16,
+    per_device_train_batch_size=4,
+    per_device_eval_batch_size=8,
     gradient_accumulation_steps=1,
     evaluation_strategy="steps",
     save_strategy="steps",
     # max_steps=12000,  # you can change to "num_train_epochs"
-    num_train_epochs=3,
+    num_train_epochs=5,
     fp16=True,
     save_steps=5000,
     eval_steps=5000,
@@ -320,7 +320,7 @@ training_args = TrainingArguments(
     remove_unused_columns=True,
 )
 
-num_folds = 3
+num_folds = 4
 kf = KFold(n_splits=num_folds, shuffle=True, random_state=42)
 
 for fold in range(num_folds):

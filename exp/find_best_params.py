@@ -302,7 +302,8 @@ if FIND_PARAMS:
     import optuna
     from optuna.trial import TrialState
     
-    valid = pd.read_csv(DATA / "excluded_valid.csv") # dtype={"id": str}
+    valid = pd.read_csv(DATA / "train.csv") # dtype={"id": str}
+    valid = valid[valid["split"] == "valid"]
     valid_audio_paths = [str(TRAIN / f"{aid}.mp3") for aid in valid["id"].values]
 
     valid_dataset = BengaliSRTestDataset(

@@ -35,10 +35,10 @@ wandb.init(
     project="wav2vec2-small-training-with-commonvoice",
     name="nagohachi",
     config={
-        "epochs": 5,
+        "epochs": 6,
         "batch_size": 4,
         "learning_rate": 5e-5,
-        "folds": 3,
+        "folds": 4,
     },
 )
 
@@ -56,8 +56,8 @@ INPUT = ROOT / "input"
 DATA = INPUT / "common-voice-13-bengali-normalized"
 TRAIN_TEST = DATA / "train_test"
 
-output_dir = INPUT / "saved_model-finetune-from-beggining-small-fold"
-MODEL_PATH = INPUT / "wav2vec2-small-70000-clear80p"
+output_dir = INPUT / "saved_model-finetune-with-commonvoice"
+MODEL_PATH = INPUT / "wav2vec2-small-70000-clear80p-with-unigram/ensemble"
 LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model"
 
 processor = Wav2Vec2Processor.from_pretrained(MODEL_PATH)

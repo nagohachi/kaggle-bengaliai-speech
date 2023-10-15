@@ -32,7 +32,7 @@ from sklearn.model_selection import KFold
 import wandb
 
 wandb.init(
-    project="wav2vec2-small-bengali-without-unigram",
+    project="wav2vec2-small-bengali-with-unigram",
     name="nagohachi",
     config={
         "epochs": 3,
