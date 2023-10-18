@@ -168,3 +168,6 @@ src/submission.csv
 
 finetune.log
 wandb/
+
+# whitelist
+!input/readme.md
