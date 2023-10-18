@@ -1,5 +1,7 @@
 # kaggle-Bengali.AI_Speech-Recognition
-https://www.kaggle.com/competitions/bengaliai-speech
+Repository for https://www.kaggle.com/competitions/bengaliai-speech
+<br>
+Won 46th (public: 0.503, private: 0.420) 🥈
 
 ## Environment
 - Ubuntu 22.04 LTS
