@@ -160,7 +160,8 @@ cython_debug/
 #.idea/
 
 # specific to this repository
-input/
+/input/*
+!/input/readme.md
 
 .vscode/
 
@@ -170,4 +171,3 @@ finetune.log
 wandb/
 
 # whitelist
-!input/readme.md
