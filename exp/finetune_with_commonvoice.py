@@ -1,11 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# - This is a training demo, you can run this code locally, using better GPUs.
-# - The inference part is here: [Bengali SR wav2vec_v1_bengali [Inference]](https://www.kaggle.com/takanashihumbert/bengali-sr-wav2vec-v1-bengali-inference), it scores **0.445** on the leaderboard.
-# - Feel free to upvote, thanks!
-
-import os
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
@@ -56,8 +48,8 @@ INPUT = ROOT / "input"
 DATA = INPUT / "common-voice-13-bengali-normalized"
 TRAIN_TEST = DATA / "train_test"
 
-output_dir = INPUT / "saved_model-finetune-with-commonvoice"
-MODEL_PATH = INPUT / "wav2vec2-small-70000-clear80p-with-unigram/ensemble"
+output_dir = INPUT / "saved_model-finetune-with-commonvoice-without-unigram"
+MODEL_PATH = INPUT / "wav2vec2-small-70000-clear80p"
 LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model"
 
 processor = Wav2Vec2Processor.from_pretrained(MODEL_PATH)
@@ -69,7 +61,7 @@ sorted_vocab_dict = {
 decoder = pyctcdecode.build_ctcdecoder(
     list(sorted_vocab_dict.keys()),
     str(LM_PATH) + "/5gram.bin",
-    str(LM_PATH) + "/unigrams.txt",
+    # str(LM_PATH) + "/unigrams.txt",
 )
 processor_with_lm = Wav2Vec2ProcessorWithLM(
     feature_extractor=processor.feature_extractor,
@@ -104,8 +96,6 @@ all_df["path"] = all_df["path"].str.replace(".mp3", "")
 
 # # INPUT / exclusive_ids.csv に保存
 # pd.DataFrame({"id": exclusive_ids}).to_csv(INPUT / "exclusive_ids.csv", index=False)
-# exit(0)
-
 
 class W2v2Dataset(torch.utils.data.Dataset):
     def __init__(self, df):
@@ -261,7 +251,7 @@ training_args = TrainingArguments(
     evaluation_strategy="steps",
     save_strategy="steps",
     # max_steps=12000,  # you can change to "num_train_epochs"
-    num_train_epochs=5,
+    num_train_epochs=6,
     fp16=True,
     save_steps=2000,
     eval_steps=2000,

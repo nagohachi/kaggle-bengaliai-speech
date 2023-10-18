@@ -1,53 +1,20 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# - This is a training demo, you can run this code locally, using better GPUs.
-# - The inference part is here: [Bengali SR wav2vec_v1_bengali [Inference]](https://www.kaggle.com/takanashihumbert/bengali-sr-wav2vec-v1-bengali-inference), it scores **0.445** on the leaderboard.
-# - Feel free to upvote, thanks!
-
-
-# this part is not needed because the packages are already described in pyproject.toml
-
-# !cp -r ../input/python-packages2 ./
-
-# !tar xvfz ./python-packages2/jiwer.tgz
-# !pip install ./jiwer/jiwer-2.3.0-py3-none-any.whl -f ./ --no-index
-# !tar xvfz ./python-packages2/normalizer.tgz
-# !pip install ./normalizer/bnunicodenormalizer-0.0.24.tar.gz -f ./ --no-index
-# !tar xvfz ./python-packages2/pyctcdecode.tgz
-# !pip install ./pyctcdecode/attrs-22.1.0-py2.py3-none-any.whl -f ./ --no-index --no-deps
-# !pip install ./pyctcdecode/exceptiongroup-1.0.0rc9-py3-none-any.whl -f ./ --no-index --no-deps
-# !pip install ./pyctcdecode/hypothesis-6.54.4-py3-none-any.whl -f ./ --no-index --no-deps
-# !pip install ./pyctcdecode/numpy-1.21.6-cp37-cp37m-manylinux_2_12_x86_64.manylinux2010_x86_64.whl -f ./ --no-index --no-deps
-# !pip install ./pyctcdecode/pygtrie-2.5.0.tar.gz -f ./ --no-index --no-deps
-# !pip install ./pyctcdecode/sortedcontainers-2.4.0-py2.py3-none-any.whl -f ./ --no-index --no-deps
-# !pip install ./pyctcdecode/pyctcdecode-0.4.0-py2.py3-none-any.whl -f ./ --no-index --no-deps
-
-# !tar xvfz ./python-packages2/pypikenlm.tgz
-# !pip install ./pypikenlm/pypi-kenlm-0.1.20220713.tar.gz -f ./ --no-index --no-deps
-
-
 import torch
-import torch.nn as nn
 import torchaudio
 import torchaudio.transforms as tat
-from datasets import load_dataset, load_metric, Audio
+from datasets import load_metric
 import os
 
-import typing as tp
 from pathlib import Path
-from functools import partial
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Union
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Union
 
 import pandas as pd
 import pyctcdecode
 import numpy as np
-from tqdm import tqdm
 
 import pyctcdecode
 import torch
-from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM, Wav2Vec2ForCTC
+from transformers import Wav2Vec2Processor, Wav2Vec2ForCTC
 from transformers import TrainingArguments, Trainer, EarlyStoppingCallback
 import warnings
 
@@ -154,12 +121,7 @@ all_ids = sentences["id"].to_list()
 train_ids = train["id"].to_list()
 valid_ids = valid["id"].to_list()
 
-# in kaggle notebook, validating is very time-consuming, so here I use a small validation set, rather than 5667.
 valid = valid.sample(n=3000, random_state=42)
-
-print(len(all_ids))
-print("train_ids", len(train_ids))
-print("valid_ids", len(valid_ids))
 
 thresh_size = 50000
 
@@ -173,9 +135,6 @@ valid_ids = [
     for valid_id in valid_ids
     if os.path.getsize(str(TRAIN / valid_id) + ".mp3") < thresh_size
 ]
-
-print("train_ids", len(train_ids))
-print("valid_ids", len(valid_ids))
 
 train_ids = sorted(
     train_ids, key=lambda train_id: os.path.getsize(str(TRAIN / train_id) + ".mp3")
@@ -200,42 +159,6 @@ for i in range(len(valid_ids) // 2):
     valid_ids_aligned.append(valid_ids[len(valid_ids) - 1 - i])
 
 valid_ids = valid_ids_aligned
-
-
-# train_ids の中にある隣接する 2 つのファイルの容量の和の最小値・最大値を計算
-train_sizes = [
-    os.path.getsize(str(TRAIN / train_id) + ".mp3") for train_id in train_ids
-]
-min_train_adjacent_size = np.min(
-    [train_sizes[i] + train_sizes[i + 1] for i in range(len(train_sizes) - 1)]
-)
-max_train_adjacent_size = np.max(
-    [train_sizes[i] + train_sizes[i + 1] for i in range(len(train_sizes) - 1)]
-)
-
-# valid についても同様に
-valid_sizes = [
-    os.path.getsize(str(TRAIN / valid_id) + ".mp3") for valid_id in valid_ids
-]
-min_valid_adjacent_size = np.min(
-    [valid_sizes[i] + valid_sizes[i + 1] for i in range(len(valid_sizes) - 1)]
-)
-max_valid_adjacent_size = np.max(
-    [valid_sizes[i] + valid_sizes[i + 1] for i in range(len(valid_sizes) - 1)]
-)
-
-print(
-    "min_train_adjacent_size",
-    min_train_adjacent_size,
-    "max_train_adjacent_size",
-    max_train_adjacent_size,
-)
-print(
-    "min_valid_adjacent_size",
-    min_valid_adjacent_size,
-    "max_valid_adjacent_size",
-    max_valid_adjacent_size,
-)
 
 
 class W2v2Dataset(torch.utils.data.Dataset):
@@ -337,11 +260,9 @@ class DataCollatorCTCWithPadding:
 data_collator = DataCollatorCTCWithPadding(processor=processor, padding=True)
 
 
-# - In kaggle notebook, there is an error: **cannot import name 'compute_measures' from 'jiwer' (unknown location)**. But in my local notebook, there is no such error.
 
 
 wer_metric = load_metric("wer")
-
 
 def compute_metrics(pred):
     pred_logits = pred.predictions
@@ -376,11 +297,6 @@ model = Wav2Vec2ForCTC.from_pretrained(
 
 # you can freeze some params
 model.freeze_feature_extractor()
-
-
-# - As a demo, "**num_train_epochs**", "**eval_steps**" and "**early_stopping_patience**" are set to very small values, you can make them larger.
-# - If there is no error about jiwer, you can set **metric_for_best_model**="wer", and remember to set **greater_is_better**=False and use **compute_metrics**.
-
 
 training_args = TrainingArguments(
     output_dir=output_dir,
@@ -426,15 +342,7 @@ trainer = Trainer(
 trainer.train()
 
 
-# - To improve scores you can:
-#     * use different pretrained models
-#     * alter the parameters
-#     * choose more data
-#     * filter data in another way.
-
-
 trainer.save_model(output_dir)
-
 
 model.save_pretrained(output_dir)
 processor.feature_extractor.save_pretrained(output_dir)

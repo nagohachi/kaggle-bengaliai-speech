@@ -5,7 +5,6 @@
 # - The inference part is here: [Bengali SR wav2vec_v1_bengali [Inference]](https://www.kaggle.com/takanashihumbert/bengali-sr-wav2vec-v1-bengali-inference), it scores **0.445** on the leaderboard.
 # - Feel free to upvote, thanks!
 
-import os
 import warnings
 from dataclasses import dataclass
 from pathlib import Path

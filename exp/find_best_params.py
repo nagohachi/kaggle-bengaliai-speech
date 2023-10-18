@@ -56,7 +56,7 @@
 
 # ## Import
 
-# In[67]:
+# In[1]:
 
 
 # !cp -r ../input/python-packages2 ./
@@ -78,43 +78,38 @@
 # !pip install ./pypikenlm/pypi-kenlm-0.1.20220713.tar.gz -f ./ --no-index --no-deps
 
 
-# In[68]:
+# In[2]:
 
 
 # !pip install ../input/jiwer-3-0-3/jiwer-3.0.3-py3-none-any.whl
 
 
-# In[69]:
+# In[3]:
 
 
 # rm -r python-packages2 jiwer normalizer pyctcdecode pypikenlm
 
 
-# In[70]:
+# In[4]:
 
 
-import typing as tp
 from pathlib import Path
 from functools import partial
-from dataclasses import dataclass, field
 
 import pandas as pd
 import pyctcdecode
-import numpy as np
 from tqdm import tqdm
 
 import librosa
 
 import pyctcdecode
-import kenlm
 import torch
 from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM, Wav2Vec2ForCTC
 from bnunicodenormalizer import Normalizer
 
-import cloudpickle as cpkl
 
 
-# In[71]:
+# In[5]:
 
 
 FIND_PARAMS = True
@@ -126,20 +121,20 @@ TRAIN = DATA / "train_mp3s"
 TEST = DATA / "test_mp3s"
 
 SAMPLING_RATE = 16_000
-MODEL_PATH = INPUT / "saved_model-finetune-from-beggining-small-fold/ensemble/"
+MODEL_PATH = INPUT / INPUT / "saved_model-finetune-with-commonvoice-without-unigram/ensemble/"
 LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model/"
 
 
 # ### load model, processor, decoder
 
-# In[72]:
+# In[6]:
 
 
 model = Wav2Vec2ForCTC.from_pretrained(MODEL_PATH)
 processor = Wav2Vec2Processor.from_pretrained(MODEL_PATH)
 
 
-# In[73]:
+# In[7]:
 
 
 vocab_dict = processor.tokenizer.get_vocab()
@@ -151,7 +146,7 @@ decoder = pyctcdecode.build_ctcdecoder(
 )
 
 
-# In[74]:
+# In[8]:
 
 
 processor_with_lm = Wav2Vec2ProcessorWithLM(
@@ -163,7 +158,7 @@ processor_with_lm = Wav2Vec2ProcessorWithLM(
 
 # ## prepare dataloader
 
-# In[75]:
+# In[9]:
 
 
 class BengaliSRTestDataset(torch.utils.data.Dataset):
@@ -187,7 +182,7 @@ class BengaliSRTestDataset(torch.utils.data.Dataset):
         return w
 
 
-# In[76]:
+# In[10]:
 
 
 if not torch.cuda.is_available():
@@ -202,7 +197,7 @@ model = model.half()
 
 # # Finding the best decoding params
 
-# In[77]:
+# In[11]:
 
 
 import jiwer
@@ -238,14 +233,14 @@ def inference(m, data_loader):
     return logits
 
 
-def decode(logits, params={"beam_width": 1024}, pp=True):    
+def decode(logits, params={"beam_width": 2000}, pp=True):    
     pred_sentence_list = [processor_with_lm.decode(sentence, **params).text for sentence in tqdm(logits)]
     if pp:
         pred_sentence_list = [postprocess(s) for s in pred_sentence_list]
     return pred_sentence_list
 
 
-# In[78]:
+# In[12]:
 
 
 constants = """
@@ -268,7 +263,7 @@ LOG_BASE_CHANGE_FACTOR = 1.0 / math.log10(math.e)  # kenlm returns base10 but we
 """
 
 
-# In[79]:
+# In[13]:
 
 
 def objective(trial):
@@ -280,7 +275,7 @@ def objective(trial):
     """
     alpha = trial.suggest_float("alpha", 0.0, 2.15)
     beta = trial.suggest_float("beta", 0.0, 2.05)
-    beam_width = trial.suggest_categorical("beam_width", [512, 768, 1024, 1500])
+    beam_width = trial.suggest_categorical("beam_width", [2000,])
     gts = valid["sentence"].values.tolist()
     decode_params = {
         "alpha": alpha,
@@ -292,16 +287,18 @@ def objective(trial):
     return wer_score
 
 
-# In[80]:
+# In[14]:
 
 
 # Default decoding configuration in the public notebook.
-best_params = {"beam_width": 1024}
+best_params = {"beam_width": 2000}
 
 if FIND_PARAMS:
     import optuna
     from optuna.trial import TrialState
     
+    # valid = pd.read_csv(DATA / "excluded_valid.csv") # dtype={"id": str}
+    # valid_audio_paths = [str(TRAIN / f"{aid}.mp3") for aid in valid["id"].values]
     valid = pd.read_csv(DATA / "train.csv") # dtype={"id": str}
     valid = valid[valid["split"] == "valid"]
     valid_audio_paths = [str(TRAIN / f"{aid}.mp3") for aid in valid["id"].values]
@@ -356,20 +353,20 @@ if FIND_PARAMS:
 
 # # Inference with the best params
 
-# In[81]:
+# In[ ]:
 
 
 # Please see the Version 3. of this notebook to see the results.
 # best_params = {'alpha': 0.345, 'beta': 0.06, 'beam_width': 768}
 
 
-# In[82]:
+# In[ ]:
 
 
 print(f"Running the inference with params: {best_params}")
 
 
-# In[83]:
+# In[ ]:
 
 
 # test = pd.read_csv(DATA / "sample_submission.csv", dtype={"id": str})
@@ -409,7 +406,7 @@ print(f"Running the inference with params: {best_params}")
 
 # ## Make Submission
 
-# In[84]:
+# In[ ]:
 
 
 # test["sentence"] = pp_pred_sentence_list
