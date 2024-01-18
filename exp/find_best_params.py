@@ -56,7 +56,7 @@
 
 # ## Import
 
-# In[1]:
+# In[ ]:
 
 
 # !cp -r ../input/python-packages2 ./
@@ -78,38 +78,43 @@
 # !pip install ./pypikenlm/pypi-kenlm-0.1.20220713.tar.gz -f ./ --no-index --no-deps
 
 
-# In[2]:
+# In[ ]:
 
 
 # !pip install ../input/jiwer-3-0-3/jiwer-3.0.3-py3-none-any.whl
 
 
-# In[3]:
+# In[ ]:
 
 
 # rm -r python-packages2 jiwer normalizer pyctcdecode pypikenlm
 
 
-# In[4]:
+# In[ ]:
 
 
+import typing as tp
 from pathlib import Path
 from functools import partial
+from dataclasses import dataclass, field
 
 import pandas as pd
 import pyctcdecode
-from tqdm import tqdm
+import numpy as np
+from tqdm.notebook import tqdm
 
 import librosa
 
 import pyctcdecode
+import kenlm
 import torch
 from transformers import Wav2Vec2Processor, Wav2Vec2ProcessorWithLM, Wav2Vec2ForCTC
 from bnunicodenormalizer import Normalizer
 
+import cloudpickle as cpkl
 
 
-# In[5]:
+# In[ ]:
 
 
 FIND_PARAMS = True
@@ -127,14 +132,14 @@ LM_PATH = INPUT / "arijitx-full-model/wav2vec2-xls-r-300m-bengali/language_model
 
 # ### load model, processor, decoder
 
-# In[6]:
+# In[ ]:
 
 
 model = Wav2Vec2ForCTC.from_pretrained(MODEL_PATH)
 processor = Wav2Vec2Processor.from_pretrained(MODEL_PATH)
 
 
-# In[7]:
+# In[ ]:
 
 
 vocab_dict = processor.tokenizer.get_vocab()
@@ -146,7 +151,7 @@ decoder = pyctcdecode.build_ctcdecoder(
 )
 
 
-# In[8]:
+# In[ ]:
 
 
 processor_with_lm = Wav2Vec2ProcessorWithLM(
@@ -158,7 +163,7 @@ processor_with_lm = Wav2Vec2ProcessorWithLM(
 
 # ## prepare dataloader
 
-# In[9]:
+# In[ ]:
 
 
 class BengaliSRTestDataset(torch.utils.data.Dataset):
@@ -182,7 +187,7 @@ class BengaliSRTestDataset(torch.utils.data.Dataset):
         return w
 
 
-# In[10]:
+# In[ ]:
 
 
 if not torch.cuda.is_available():
@@ -197,7 +202,7 @@ model = model.half()
 
 # # Finding the best decoding params
 
-# In[11]:
+# In[ ]:
 
 
 import jiwer
@@ -240,7 +245,7 @@ def decode(logits, params={"beam_width": 2000}, pp=True):
     return pred_sentence_list
 
 
-# In[12]:
+# In[ ]:
 
 
 constants = """
@@ -263,7 +268,7 @@ LOG_BASE_CHANGE_FACTOR = 1.0 / math.log10(math.e)  # kenlm returns base10 but we
 """
 
 
-# In[13]:
+# In[ ]:
 
 
 def objective(trial):
@@ -287,7 +292,7 @@ def objective(trial):
     return wer_score
 
 
-# In[14]:
+# In[ ]:
 
 
 # Default decoding configuration in the public notebook.
